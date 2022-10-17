@@ -19,6 +19,7 @@ library(magrittr)
 library(stringr)
 library(forcats)
 library(readr)
+library(phsmethods)
 library(tidylog)
 
 
@@ -34,17 +35,16 @@ month <- "09"
 wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
 
-simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Geography",
-                    "/Scottish Postcode Directory",
-                    "/postcode_2022_2_simd2020v2.rds")
-
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
                   "/gpprac.sav")
 ##!! KH: I don't see an RDS (or CSV) version of this file... Where to get?
 
+simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
+                    "/postcode_2022_2_simd2020v2.rds")
+
 
 #### 2: Main extract ####
-## Import and rename
+## Import and rename ~~~
 quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(X5 = col_date("%Y%m%d"),
@@ -73,12 +73,14 @@ names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
                     "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
                     "referral_error_manage", "practice_code", "hb_surgery")
 
-## Reformat
+## Reformat ~~~
 table(quarter$hb_surgery) ## Where is D? Cumbria
 table(quarter$hbres) ## Where is E? Northumbria
 
 
 quarter %<>%
+  select(-surname, -forename) %>% 
+  rename(pc8 = postcode) %>% 
   mutate(hb_screen = str_sub(location_code, -1),
          hb_screen = case_when(hb_screen=="A" ~ "Ayrshire & Arran",
                                hb_screen=="B" ~ "Borders",
@@ -128,7 +130,7 @@ quarter %<>%
                            hbres=="M" ~ "Scotland",
                            hbres=="C" ~ "Argyll & Clyde",
                            hbres=="D" ~ "Cumbria",
-                           hbres=="E" ~ "Northumbria",
+                           hbres=="E" ~ "Northumbria", # Should this just be Borders?
                            hbres==TRUE ~ "Outwith Scotland"),
          hbres = fct_relevel(hbres, c("Argyll & Clyde", 
                                       "Ayrshire & Arran", "Borders",
@@ -148,27 +150,67 @@ table(quarter$hbres, useNA = "ifany")
 table(quarter$hb_screen, useNA = "ifany")
 
 
-## Match GP practice codes
+## Match GP practice codes ~~~
+
 # First letter in practice_code variable string represents HB, 
 # but easier to merge if removed
 quarter %<>%
-  mutate(gp_prac = str_sub(practice_code, 2, 5)) %>% 
+  mutate(gp_prac = str_sub(practice_code, 2, 5),
+         gp_prac = as.numeric(gp_prac)) %>% 
   glimpse()
 
+gp_link <- read_sav(gp_path) %>% 
+  mutate(gp_prac = str_sub(praccode, 1, 4),
+         gp_prac = as.numeric(gp_prac)) %>%
+  # data now has two rows where gp_prac==9999; keep where add1=="unknown"
+  # and remove add1/add2=="PATIENTS REGISTERED WITH A GP IN ENG WAL OR N IRE"
+  filter(praccode != 99995) %>% 
+  select(gp_prac, add1) %>% 
+  # use title case to clean practice names
+  mutate(add1 = str_to_title(add1)) %>% 
+  rename(practice_name = add1) %>% 
+  glimpse()
 
-gp_practice <- read_sav(gp_path) %>% 
-  mutate()
+quarter <- left_join(quarter, gp_link, by="gp_prac")
 
 
+## Match SIMD ~~~
+simd <- read_rds(simd_path) %>% 
+  select(pc8, ca2019, 
+         simd2020v2_sc_quintile, 
+         simd2020v2_hb2019_quintile) %>% 
+  glimpse()
+
+quarter <- left_join(quarter, simd, by="pc8")
 
 
+## Prepare file to save ~~~
+quarter %<>%
+  arrange(upi, date_screen) %>% 
+  rename(postcode = pc8) %>% 
+  mutate(hbres = recode(hbres, "Northumbria" = "Borders")) %>%  # Why not done above?
+  select(chi:dob, sex, postcode, # Do we need UPI and CHI? Why?
+         practice_code, practice_name, pat_elig,
+         hbres, ca2019, hb_screen,
+         simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,
+         location_code, screen_type, date_offer_sent, date_screen,
+         att_dna, screen_result, screen_exep, followup_recom,
+         apl_measure, apt_measure, largest_measure,
+         date_result, result_verified, date_verified,
+         date_referral, date_referral_true, date_seen_outpatient,
+         result_outcome, first_outcome, referral_error_manage,
+         date_surgery, hb_surgery, surg_method, date_death,
+         aneurysm_related, audit_flag, audit_result, audit_fail_reason,
+         audit_fail_1, audit_fail_2, audit_fail_3, audit_fail_4, audit_fail_5,
+         audit_outcome, audit_batch_fail, audit_batch_outcome) %>% 
+  glimpse()
+
+saveRDS(quarter, paste0(wd_path, 
+                        "/output/aaa_extract_", year, month, ".rds"))
 
 
-
-
-
-
-
+#### 3: Exclusions extract ####
+## Import and rename ~~~
 
 
 
