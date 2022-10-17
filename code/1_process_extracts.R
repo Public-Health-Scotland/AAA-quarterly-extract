@@ -3,9 +3,12 @@
 # Karen Hotopp
 # 14/10/2022
 # Script 1 of ?
+# 
 # Imports and formats BOXI extracts for AAA quarterly review
+# Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
 # Outputs are checked in further scripts;
 # March and September outputs used for MEG reports
+# 
 # Written/run on R Studio Server
 # R version 3.6.1
 ##########################################################
