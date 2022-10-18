@@ -213,10 +213,21 @@ saveRDS(quarter, paste0(wd_path,
 
 
 #### 3: Exclusions extract ####
-## Import and rename ~~~
+## Import and process ~~~
+exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"), 
+                    col_names = FALSE, 
+                    col_types=cols(X5 = col_date("%Y%m%d"),
+                                   X7 = col_date("%Y%m%d"),
+                                   X8 = col_date("%Y%m%d"))) %>%
+  select(X1, X2, X5, X6, X7, X8, X9) %>% 
+  arrange(X1) %>% 
+  glimpse()
 
+names(exclude) <- c("chi", "upi", "dob", "pat_inelig",
+                    "date_start", "date_end", "pat_elig_rec")
 
-
-
+## Import and process ~~~
+saveRDS(exclude, paste0(wd_path, 
+                        "/output/aaa_exclusions_", year, month, ".rds"))
 
 
