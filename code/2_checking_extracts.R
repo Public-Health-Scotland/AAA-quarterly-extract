@@ -17,7 +17,6 @@
 ## Packages
 library(here)
 library(dplyr)
-#library(haven)
 library(magrittr)
 library(stringr)
 #library(forcats)
@@ -41,16 +40,18 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
 
 
 #### 2: Call in extract ####
-## Import ~~~
+## Financial years and quarters ~~~
 quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>% 
   # exclude cases with results obtained outside of Scotland 
   filter(!screen_result %in% c("05", "06")) %>% 
+  # create financial year/quarter from screening date
   mutate(financial_year = extract_fin_year(date_screen),
          financial_quarter = qtr(date_screen, format="short")) %>% 
   mutate(id = row_number(), .before = chi) %>% 
   glimpse()
 
 quarter %<>%
+  # financial_quarter should be numeric
   mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
          financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
                                        financial_quarter == "Apr" ~ 1,
@@ -58,17 +59,30 @@ quarter %<>%
                                        financial_quarter == "Oct" ~ 3),
          fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
   mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
-  arrange(fy_quarter) %>% 
+  arrange(upi, fy_quarter) %>% 
   glimpse()
 
-table(quarter$fy_quarter)#, useNA = "ifany")
+table(quarter$fy_quarter, useNA = "ifany")
 
+length((unique(quarter$upi)))
+# 366,571 of 523071 records
 
+## Screenings
+annual <- quarter %>% 
+  mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>% 
+  group_by(financial_year) %>% 
+  summarize(screenings = sum(count_screens)) %>% 
+  ungroup()
 
-
-
-
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 #### 3. Validate data ####
 ### A. Check dates ----
