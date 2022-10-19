@@ -192,7 +192,7 @@ quarter %<>%
   arrange(upi, date_screen) %>% 
   rename(postcode = pc8) %>% 
   mutate(hbres = recode(hbres, "Northumbria" = "Borders")) %>%  # Why not done above?
-  select(chi:dob, sex, postcode, # Do we need UPI and CHI? Why?
+  select(chi:dob, sex, postcode,
          practice_code, practice_name, pat_elig,
          hbres, ca2019, hb_screen,
          simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,

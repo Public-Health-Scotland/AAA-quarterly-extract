@@ -21,8 +21,8 @@ library(dplyr)
 library(magrittr)
 #library(stringr)
 #library(forcats)
-#library(readr)
-#library(phsmethods)
+library(readr)
+library(phsmethods)
 library(tidylog)
 
 
@@ -37,3 +37,37 @@ month <- "09"
 ## Pathways
 wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
+
+
+#### 2: Main extract ####
+## Import ~~~
+quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>% 
+  # exclude cases with results obtained outside of Scotland 
+  filter(!screen_result %in% c("05", "06")) %>% 
+  mutate(financial_year = extract_fin_year(date_screen)) %>% 
+  mutate(qtr(date_screen, format="short")) %>% 
+  glimpse()
+
+
+## Check financial years for outliers
+table(quarter$financial_year) 
+a <- quarter[quarter$financial_year == "2025/26",]
+b <- quarter[quarter$financial_year == "2056/57",]
+# These should be checked out; to send to ...?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
