@@ -12,11 +12,22 @@
 # R version 3.6.1
 ##########################################################
 
+## Some things to think about:
+## What should this script be doing? Are there outputs and if so where do they
+## go? Is it reasonable to make graphical outputs for people running script to
+## interpret the data?
+## Do we need to create an Excel file?
+## Conversly, if we find issues in the data, would it be worth creating outputs 
+## to send to the HBs to review errors/questions? Or maybe that is for the 
+## pre-September audit??
+
+
+
 #### 1: Housekeeping ####
 ## Packages
 library(here)
 library(dplyr)
-library(magrittr)
+#library(magrittr)
 library(stringr)
 #library(forcats)
 library(readr)
@@ -65,26 +76,34 @@ length((unique(quarter$upi)))
 
 
 #### 3. Validate data ####
+## Rules are written such that a "pass" is an outlier to be investigated.
+## For example, if date_death is before date_surgery, that is a "pass".
+## This allows pass results (logical TRUE) to more easily be converted to 
+## an integer for summarizing (sections 4 & 5).
+
 ### A. Check root data ----
-check_roots <- validator("sex" = sex == "01",
-                         "missing_postcode" = !is.na(postcode),
-                         "missing_simd" = !is.na(simd2020v2_sc_quintile),
-                         "missing_gp" = !is.na(practice_code))
+check_roots <- validator("sex" = sex != "01",
+                         "HB_res_screen" = hbres != hb_screen,
+                         "missing_postcode" = is.na(postcode),
+                         "missing_simd" = is.na(simd2020v2_sc_quintile),
+                         "missing_gp" = is.na(practice_code))
 
 review_roots <- confront(quarter, check_roots, key  ="id")
 summary(review_roots)
 
 
 ### B. Check dates ----
-check_dates <- validator("date_offer_screen" = date_offer_sent <= date_screen,
-                         "date_screen_result" = date_screen <= date_result,
-                         "date_result_verified" = date_result < date_verified,
-                         "date_verified_referral" = date_verified < date_referral,
-                         "date_referral_refTrue" = date_referral < date_referral_true,
-                         "date_refTrue_seen_outpatient" = date_referral_true < date_seen_outpatient, # Is this accurate??
-                         "date_seen_outpatient_surgery" = date_seen_outpatient < date_surgery, # Is this accurate??
-                         "date_surgery_death" = date_surgery < date_death,
-                         "correct_FYQ" = fy_quarter <= fyq_current)
+check_dates <- validator("date_offer_screen" = date_offer_sent > date_screen,
+                         "date_screen_result" = date_screen > date_result,
+                         "date_result_verified" = date_result > date_verified,
+                         "date_verified_referral" = date_verified > date_referral,
+                         "date_referral_refTrue" = date_referral > date_referral_true,
+                         "date_refTrue_seen_outpatient" = 
+                           date_referral_true > date_seen_outpatient, # Is this accurate??
+                         "date_seen_outpatient_surgery" = 
+                           date_seen_outpatient > date_surgery, # Is this accurate??
+                         "date_surgery_death" = date_surgery > date_death,
+                         "correct_FYQ" = fy_quarter > fyq_current)
 
 review_dates <- confront(quarter, check_dates, key  ="id")
 summary(review_dates)
@@ -119,8 +138,7 @@ summary(review_dates)
 
 
 ### C. Check results ----
-## "passes" are to be reviewed
-check_results <- validator("patients_seen_screened" = att_dna == "05",
+check_results <- validator("patient_attend" = att_dna == "05",
                            "not_recorded_result" = att_dna == "05" & 
                              is.na(screen_result),
                            "not_recorded_followup" = att_dna == "05" & 
@@ -154,29 +172,81 @@ summary(review_audits)
 
 
 #### 4. Combine checks ####
-# make a data.frame
-review_df <- as.data.frame(review)
-# rearrange data.frame
-review_df %<>%
+## Make data.frames
+review_roots_df <- as.data.frame(review_roots)
+review_dates_df <- as.data.frame(review_dates)
+review_results_df <- as.data.frame(review_results)
+review_audits_df <- as.data.frame(review_audits)
+
+## Join and rearrange
+review <- rbind(review_roots_df, review_dates_df, 
+                review_results_df, review_audits_df) %>%
   pivot_wider(id_cols = c('id'),
               names_from = c('name'),
-              values_from = c('value'))
-# join back onto dataset using key
-quarter_check <- quarter %>%
-  left_join(review_df, by = c('id'))
-quarter_check
-# View results that did not pass
-quarter_check %>% filter(!correct_FYQ == TRUE) %>%
-  View()
+              values_from = c('value')) %>% 
+  # change logical vectors to integers to be albe to summarize
+  mutate(across(.cols = sex:not_recorded_batch_outcome, .fns = as.integer)) %>% 
+  glimpse()
+
+## Join back onto main dataset using key
+quarter_checks <- quarter %>%
+  left_join(review, by = c('id')) %>% 
+  glimpse
+
+rm(check_roots, check_dates, check_results, check_audits,
+   review_roots, review_dates, review_results, review_audits,
+   review_roots_df, review_dates_df, review_results_df, review_audits_df)
+
+# # View results that stand out
+# quarter_checks %>% filter(!HB_res_screen == 1) %>%
+#   View()
 
 
+#### 5. Summarize ####
+#### Scotland ----
+summary_scot <- quarter_checks %>%
+  group_by(fy_quarter) %>% 
+  summarize(screening_n = sum(!is.na(screen_result)),
+            patient_n = length(unique(upi)),
+            #attend_n = sum(patient_attend),
+            missing_postcode_n = sum(missing_postcode),
+            missing_simd_n = sum(missing_simd),
+            missing_gp_n = sum(missing_gp),
+            screen_before_offer_n = sum(date_offer_screen),
+            #not_recorded_result_n = sum(not_recorded_result),
+            #not_recorded_followup_n = sum(not_recorded_followup),
+            #no_result_followup_n = sum(no_result_followup),
+            audits_n = sum(audit_flag == "01"),
+            #not_recorded_fail_reason_n = sum(not_recorded_fail_reason),
+            not_recorded_fail_detail_n = sum(not_recorded_fail_detail),
+            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome)) %>% 
+  ungroup()
+  
+# Commented out variables are only coming up with NA, not sure why...
 
 
+#### HBs ----
+summary_hb <- quarter_checks %>%
+  group_by(hbres, fy_quarter) %>% 
+  summarize(screening_n = sum(!is.na(screen_result)),
+            patient_n = length(unique(upi)),
+            attend_n = sum(patient_attend),
+            missing_postcode_n = sum(missing_postcode),
+            missing_simd_n = sum(missing_simd),
+            missing_gp_n = sum(missing_gp),
+            screen_before_offer_n = sum(date_offer_screen),
+            not_recorded_result_n = sum(not_recorded_result),
+            not_recorded_followup_n = sum(not_recorded_followup),
+            no_result_followup_n = sum(no_result_followup),
+            audits_n = sum(audit_flag == "01"),
+            not_recorded_fail_reason_n = sum(not_recorded_fail_reason),
+            not_recorded_fail_detail_n = sum(not_recorded_fail_detail),
+            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome)) %>% 
+  ungroup()
 
 
-
-names(quarter)
-
+names(quarter_checks)
+table(quarter_checks$patient_attend, useNA = "ifany")
 
 
 

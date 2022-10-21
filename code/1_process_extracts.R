@@ -226,7 +226,7 @@ exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"),
 names(exclude) <- c("chi", "upi", "dob", "pat_inelig",
                     "date_start", "date_end", "pat_elig_rec")
 
-## Import and process ~~~
+## Write out ~~~
 saveRDS(exclude, paste0(wd_path, 
                         "/output/aaa_exclusions_", year, month, ".rds"))
 
