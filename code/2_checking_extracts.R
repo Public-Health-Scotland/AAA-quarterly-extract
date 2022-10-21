@@ -55,22 +55,10 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
 quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>% 
   # exclude cases with results obtained outside of Scotland 
   filter(!screen_result %in% c("05", "06")) %>% 
-  # create financial year/quarter from screening date
-  mutate(financial_year = extract_fin_year(date_screen),
-         financial_quarter = qtr(date_screen, format="short")) %>% 
-  # financial_quarter should be represented by a number
-  mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
-         financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
-                                       financial_quarter == "Apr" ~ 1,
-                                       financial_quarter == "Jul" ~ 2,
-                                       financial_quarter == "Oct" ~ 3),
-         fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
-  mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
-  arrange(upi, fy_quarter) %>% 
   # id variable for matching validator checks
-  mutate(id = row_number(), .before = chi) %>% 
+  mutate(id = row_number(), .before = financial_year) %>% 
   glimpse()
-
+  
 length((unique(quarter$upi)))
 # 366,571 of 523071 records
 

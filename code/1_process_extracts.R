@@ -47,7 +47,7 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 
 
 #### 2: Main extract ####
-## Import and rename ~~~
+## Import and rename ---
 quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(X5 = col_date("%Y%m%d"),
@@ -76,10 +76,9 @@ names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
                     "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
                     "referral_error_manage", "practice_code", "hb_surgery")
 
-## Reformat ~~~
+## Reformat ---
 table(quarter$hb_surgery) ## Where is D? Cumbria
 table(quarter$hbres) ## Where is E? Northumbria
-
 
 quarter %<>%
   select(-surname, -forename) %>% 
@@ -153,8 +152,24 @@ table(quarter$hbres, useNA = "ifany")
 table(quarter$hb_screen, useNA = "ifany")
 
 
-## Match GP practice codes ~~~
+## Add financial year and quarter ---
+# Create financial year/quarter from screening date
+quarter %<>%
+  mutate(financial_year = extract_fin_year(date_screen),
+         financial_quarter = qtr(date_screen, format="short")) %>% 
+  # financial_quarter should be represented by a number
+  mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
+         financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
+                                       financial_quarter == "Apr" ~ 1,
+                                       financial_quarter == "Jul" ~ 2,
+                                       financial_quarter == "Oct" ~ 3),
+         fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
+  mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
+  arrange(upi, fy_quarter) %>% 
+  glimpse()
 
+
+## Match GP practice codes ---
 # First letter in practice_code variable string represents HB, 
 # but easier to merge if removed
 quarter %<>%
@@ -177,7 +192,7 @@ gp_link <- read_sav(gp_path) %>%
 quarter <- left_join(quarter, gp_link, by="gp_prac")
 
 
-## Match SIMD ~~~
+## Match SIMD ---
 simd <- read_rds(simd_path) %>% 
   select(pc8, ca2019, 
          simd2020v2_sc_quintile, 
@@ -187,12 +202,12 @@ simd <- read_rds(simd_path) %>%
 quarter <- left_join(quarter, simd, by="pc8")
 
 
-## Prepare file to save ~~~
+## Prepare file to save ---
 quarter %<>%
   arrange(upi, date_screen) %>% 
   rename(postcode = pc8) %>% 
   mutate(hbres = recode(hbres, "Northumbria" = "Borders")) %>%  # Why not done above?
-  select(chi:dob, sex, postcode,
+  select(financial_year:fy_quarter, chi:dob, sex, postcode,
          practice_code, practice_name, pat_elig,
          hbres, ca2019, hb_screen,
          simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,
@@ -213,7 +228,7 @@ saveRDS(quarter, paste0(wd_path,
 
 
 #### 3: Exclusions extract ####
-## Import and process ~~~
+## Import and process ---
 exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(X5 = col_date("%Y%m%d"),
@@ -226,7 +241,28 @@ exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"),
 names(exclude) <- c("chi", "upi", "dob", "pat_inelig",
                     "date_start", "date_end", "pat_elig_rec")
 
-## Write out ~~~
+# ## Add financial year and quarter ---
+# # Create financial year/quarter from starting date
+# exclude %<>%
+#   mutate(financial_year = extract_fin_year(date_start),
+#          financial_quarter = qtr(date_start, format="short")) %>% 
+#   # financial_quarter should be represented by a number
+#   mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
+#          financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
+#                                        financial_quarter == "Apr" ~ 1,
+#                                        financial_quarter == "Jul" ~ 2,
+#                                        financial_quarter == "Oct" ~ 3),
+#          fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
+#   mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
+#   select(financial_year:fy_quarter, 
+#          chi:pat_elig_rec) %>% 
+#   arrange(upi, fy_quarter) %>% 
+#   glimpse()
+#   
+#   CHECK IF THIS IS ACCURATE: IS date_start COMPARABLE TO date_screen???
+
+
+## Write out ---
 saveRDS(exclude, paste0(wd_path, 
                         "/output/aaa_exclusions_", year, month, ".rds"))
 
