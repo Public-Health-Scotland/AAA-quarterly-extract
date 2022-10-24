@@ -171,7 +171,7 @@ quarter %<>%
                                        financial_quarter == "Jul" ~ 2,
                                        financial_quarter == "Oct" ~ 3),
          fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
-  mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
+  mutate(fy_quarter = if_else(fy_quarter == "NA_NA", "unrecorded", fy_quarter)) %>%  
   arrange(upi, fy_quarter) %>% 
   glimpse()
 

@@ -31,7 +31,7 @@ library(dplyr)
 library(stringr)
 #library(forcats)
 library(readr)
-library(phsmethods)
+#library(phsmethods)
 library(validate)
 library(tidylog)
 
@@ -43,7 +43,7 @@ rm(list = ls())
 year <- 2022
 month <- "09"
 # Financial year and quarter of current extract
-fyq_current <- "2022/23 2"
+fyq_current <- "2022/23_2"
 
 
 ## Pathways
@@ -141,9 +141,13 @@ check_results <- validator("patient_attend" = att_dna == "05",
 review_results <- confront(quarter, check_results, key  ="id")
 summary(review_results)
 
+## Which HBs performed screens but have no result or f/up recommendation?
+hb_norf <- quarter %>%
+  filter(att_dna == "05", is.na(followup_recom))
+table(droplevels(hb_norf$hb_screen))
+
 
 ### D. Check audits ----
-## "passes" are to be reviewed
 check_audits <- validator("total_audits" = audit_flag == "01",
                           "audit_fail" = audit_result == "02",
                           "not_recorded_fail_reason" = audit_result == "02" & 
@@ -152,11 +156,27 @@ check_audits <- validator("total_audits" = audit_flag == "01",
                             is.na(audit_fail_1),
                           "not_recorded_audit_outcome" = audit_result == "02" &
                             is.na(audit_outcome),
+                          "not_recorded_batch_fail" = !is.na(audit_batch_fail),
                           "not_recorded_batch_outcome" = !is.na(audit_batch_fail) &
                             is.na(audit_batch_outcome))
 
 review_audits <- confront(quarter, check_audits, key  ="id")
 summary(review_audits)
+
+## Recall advice for audits that failed
+table(quarter$audit_result, quarter$audit_outcome)
+
+
+### E. Derived variable audits ----
+table(quarter$aaa_size_group)
+# ## !! To look into the 2 "very large error": 
+# # Do these need to be sent to HB for verrification?
+# # Are they then just turned into "large"??
+# q1 <- quarter %>%
+#   mutate(aaa_size_group = recode(aaa_size_group,
+#                                  "very large error" = "large"))
+
+
 
 
 #### 4. Combine checks ####
@@ -172,11 +192,11 @@ review <- rbind(review_roots_df, review_dates_df,
   pivot_wider(id_cols = c('id'),
               names_from = c('name'),
               values_from = c('value')) %>% 
-  # change logical vectors to integers to be albe to summarize
+  # change logical vectors to integers to be able to summarize
   mutate(across(.cols = sex:not_recorded_batch_outcome, .fns = as.integer)) %>% 
   glimpse()
 
-## Join back onto main dataset using key
+## Join back on to main dataset using key
 quarter_checks <- quarter %>%
   left_join(review, by = c('id')) %>% 
   glimpse
@@ -196,21 +216,42 @@ summary_scot <- quarter_checks %>%
   group_by(fy_quarter) %>% 
   summarize(screening_n = sum(!is.na(screen_result)),
             patient_n = length(unique(upi)),
-            #attend_n = sum(patient_attend),
-            missing_postcode_n = sum(missing_postcode),
-            missing_simd_n = sum(missing_simd),
-            missing_gp_n = sum(missing_gp),
-            screen_before_offer_n = sum(date_offer_screen),
-            #not_recorded_result_n = sum(not_recorded_result),
-            #not_recorded_followup_n = sum(not_recorded_followup),
-            #no_result_followup_n = sum(no_result_followup),
+            attend_n = sum(patient_attend,na.rm=TRUE),
+            missing_postcode_n = sum(missing_postcode,na.rm=TRUE),
+            missing_simd_n = sum(missing_simd,na.rm=TRUE),
+            missing_gp_n = sum(missing_gp,na.rm=TRUE),
+            screen_before_offer_n = sum(date_offer_screen,na.rm=TRUE),
+            not_recorded_result_n = sum(not_recorded_result,na.rm=TRUE),
+            not_recorded_followup_n = sum(not_recorded_followup,na.rm=TRUE),
+            no_result_followup_n = sum(no_result_followup,na.rm=TRUE),
             audits_n = sum(audit_flag == "01"),
-            #not_recorded_fail_reason_n = sum(not_recorded_fail_reason),
-            not_recorded_fail_detail_n = sum(not_recorded_fail_detail),
-            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome)) %>% 
-  ungroup()
+            not_recorded_fail_reason_n = sum(not_recorded_fail_reason,na.rm=TRUE),
+            not_recorded_fail_detail_n = sum(not_recorded_fail_detail,na.rm=TRUE),
+            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(hbres = "Scotland", .before = fy_quarter) %>% 
+  # # pivot to have displayed across fy_quarters
+  # pivot_longer(cols = "screening_n":"not_recorded_batch_outcome_n",
+  #              names_to = "summaries", values_to = "values") %>%
+  # mutate(values = if_else(is.na(values), 0, as.numeric(values)),
+  #        fy_quarter = if_else(fy_quarter == "NA_NA", 
+  #                             "unrecorded", fy_quarter)) %>%
+  # pivot_wider(names_from = fy_quarter,
+  #             values_from = values) %>%glimpse()
+
+
+   
   
-# Commented out variables are only coming up with NA, not sure why...
+  
+  
+  
+  
+  
+  
+
+  
+
+
 
 
 #### HBs ----
@@ -218,23 +259,27 @@ summary_hb <- quarter_checks %>%
   group_by(hbres, fy_quarter) %>% 
   summarize(screening_n = sum(!is.na(screen_result)),
             patient_n = length(unique(upi)),
-            attend_n = sum(patient_attend),
-            missing_postcode_n = sum(missing_postcode),
-            missing_simd_n = sum(missing_simd),
-            missing_gp_n = sum(missing_gp),
-            screen_before_offer_n = sum(date_offer_screen),
-            not_recorded_result_n = sum(not_recorded_result),
-            not_recorded_followup_n = sum(not_recorded_followup),
-            no_result_followup_n = sum(no_result_followup),
+            attend_n = sum(patient_attend,na.rm=TRUE),
+            missing_postcode_n = sum(missing_postcode,na.rm=TRUE),
+            missing_simd_n = sum(missing_simd,na.rm=TRUE),
+            missing_gp_n = sum(missing_gp,na.rm=TRUE),
+            screen_before_offer_n = sum(date_offer_screen,na.rm=TRUE),
+            not_recorded_result_n = sum(not_recorded_result,na.rm=TRUE),
+            not_recorded_followup_n = sum(not_recorded_followup,na.rm=TRUE),
+            no_result_followup_n = sum(no_result_followup,na.rm=TRUE),
             audits_n = sum(audit_flag == "01"),
-            not_recorded_fail_reason_n = sum(not_recorded_fail_reason),
-            not_recorded_fail_detail_n = sum(not_recorded_fail_detail),
-            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome)) %>% 
+            not_recorded_fail_reason_n = sum(not_recorded_fail_reason,na.rm=TRUE),
+            not_recorded_fail_detail_n = sum(not_recorded_fail_detail,na.rm=TRUE),
+            not_recorded_batch_outcome_n = sum(not_recorded_batch_outcome,na.rm=TRUE)) %>% 
   ungroup()
 
 
-names(quarter_checks)
-table(quarter_checks$patient_attend, useNA = "ifany")
+
+
+
+
+
+
 
 
 
