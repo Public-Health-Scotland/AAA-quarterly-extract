@@ -54,12 +54,18 @@ quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"),
                                    X12 = col_date("%Y%m%d"),
                                    X16 = col_date("%Y%m%d"),
                                    X19 = col_date("%Y%m%d"),
+                                   X20 = col_character(),
                                    X25 = col_date("%Y%m%d"),
                                    X26 = col_date("%Y%m%d"),
                                    X27 = col_date("%Y%m%d"),
+                                   X28 = col_character(),
                                    X33 = col_date("%Y%m%d"),
                                    X34 = col_date("%Y%m%d"),
-                                   X35 = col_date("%Y%m%d"))) %>% 
+                                   X35 = col_date("%Y%m%d"),
+                                   X36 = col_character(),
+                                   X41 = col_character(),
+                                   X42 = col_character(),
+                                   X45 = col_character())) %>% 
   glimpse()
 
 names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
@@ -146,7 +152,8 @@ quarter %<>%
                                       "Cumbria", "Northumbria",
                                       "Outwith Scotland"))
   )
-# Warning messages that there are no entries for particular levels
+# Warning messages say that there are no entries for particular levels;
+# Accept
 
 table(quarter$hbres, useNA = "ifany") 
 table(quarter$hb_screen, useNA = "ifany")
@@ -163,7 +170,7 @@ quarter %<>%
                                        financial_quarter == "Apr" ~ 1,
                                        financial_quarter == "Jul" ~ 2,
                                        financial_quarter == "Oct" ~ 3),
-         fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
+         fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
   mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
   arrange(upi, fy_quarter) %>% 
   glimpse()
@@ -202,6 +209,34 @@ simd <- read_rds(simd_path) %>%
 quarter <- left_join(quarter, simd, by="pc8")
 
 
+## Create definitive screen results ---
+# A measurement category is derived for definitive screen results i.e. positive,
+# negative, external postive or external negative results unless the follow up
+# recommendation is immediate recall ('05').
+# This new category does not include technical fails, non-visualisations or 
+# immediate recalls.
+quarter %<>%
+  mutate(aaa_size = case_when(screen_result %in% c("01", "02", "05", "06") &
+                                (followup_recom != "05" | 
+                                   is.na(followup_recom)) ~ largest_measure)) %>%
+  mutate(aaa_size_group = case_when(aaa_size >= 0 &
+                                      aaa_size <= 2.9 ~ "negative",
+                                    aaa_size >= 3 &
+                                      aaa_size <= 4.4 ~ "small",
+                                    aaa_size >= 4.5 &
+                                      aaa_size <= 5.4 ~ "medium",
+                                    aaa_size >= 5.5 &
+                                      aaa_size <= 10.5 ~ "large",
+                                    aaa_size >= 10.6 ~ "very large error"))
+
+
+## Any other variables to be created, insert here ---
+
+
+
+
+
+
 ## Prepare file to save ---
 quarter %<>%
   arrange(upi, date_screen) %>% 
@@ -213,7 +248,7 @@ quarter %<>%
          simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,
          location_code, screen_type, date_offer_sent, date_screen,
          att_dna, screen_result, screen_exep, followup_recom,
-         apl_measure, apt_measure, largest_measure,
+         apl_measure, apt_measure, largest_measure, aaa_size, aaa_size_group,
          date_result, result_verified, date_verified,
          date_referral, date_referral_true, date_seen_outpatient,
          result_outcome, first_outcome, referral_error_manage,
@@ -235,7 +270,7 @@ exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"),
                                    X7 = col_date("%Y%m%d"),
                                    X8 = col_date("%Y%m%d"))) %>%
   select(X1, X2, X5, X6, X7, X8, X9) %>% 
-  arrange(X1) %>% 
+  arrange(X2) %>% 
   glimpse()
 
 names(exclude) <- c("chi", "upi", "dob", "pat_inelig",
