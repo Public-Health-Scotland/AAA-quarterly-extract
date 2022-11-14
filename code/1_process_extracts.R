@@ -15,7 +15,6 @@
 
 #### 1: Housekeeping ####
 ## Packages
-library(here)
 library(dplyr)
 library(haven)
 library(magrittr)
@@ -153,7 +152,7 @@ quarter %<>%
                                       "Outwith Scotland"))
   )
 # Warning messages say that there are no entries for particular levels;
-# Accept
+# Accept (mostly non-Scottish HBs are not valid factor levels)
 
 table(quarter$hbres, useNA = "ifany") 
 table(quarter$hb_screen, useNA = "ifany")
