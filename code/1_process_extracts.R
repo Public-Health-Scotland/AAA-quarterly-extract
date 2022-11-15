@@ -54,6 +54,7 @@ quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"),
                                    X16 = col_date("%Y%m%d"),
                                    X19 = col_date("%Y%m%d"),
                                    X20 = col_character(),
+                                   X21 = col_character(),
                                    X25 = col_date("%Y%m%d"),
                                    X26 = col_date("%Y%m%d"),
                                    X27 = col_date("%Y%m%d"),
@@ -64,7 +65,8 @@ quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"),
                                    X36 = col_character(),
                                    X41 = col_character(),
                                    X42 = col_character(),
-                                   X45 = col_character())) %>% 
+                                   X45 = col_character(),
+                                   X47 = col_character())) %>% 
   glimpse()
 
 names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
