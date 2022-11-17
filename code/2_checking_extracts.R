@@ -316,14 +316,17 @@ summary <- rbind(summary_scot, summary_hb)
 
 #### 6. Compare ####
 ## Bring in records from previous extract run to do comparison of numbers
+old_path <-paste0("/PHI_conf/AAA/Portfolio/Data/RoutineExtracts",
+                  "/", year, "0601") # delete in future, once files are moved to new set-up
 historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_202206.rds")) # change 'old_path' for 'previous_path' once new folders set up
 
 names(historic_checks)
 names(summary)
 
+table(historic_checks$fy_quarter)
+table(summary$fy_quarter) # should be same except most recent fy_quarters will have increased
 
-
-
+hist_scot <- historic_checks[historic_checks$hbres == "Scotland",]
 
 
 
