@@ -31,13 +31,11 @@
 
 #### 1: Housekeeping ####
 ## Packages
-#library(here)
 library(dplyr)
 #library(magrittr)
 library(stringr)
 #library(forcats)
 library(readr)
-#library(phsmethods)
 library(validate)
 library(tidylog)
 
@@ -62,12 +60,10 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
 #### 2: Call in extract ####
 quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>% 
   # select cases with vascular referrals 
-  filter(!is.na(date_referral_true),
-         largest_measure >= 5.5) %>% 
-  # need to preserve NA values in result outcome for validation checks
-  mutate(result_outcome = if_else(is.na(result_outcome), 
-                                  "99", result_outcome)) %>% 
-  filter(result_outcome != "02") %>%
+  filter(!is.na(date_referral_true)) %>%
+  # need to preserve NA values in result outcome for validation checks **WHY??**
+  mutate(result_outcome = if_else(is.na(result_outcome),
+                                  "99", result_outcome)) %>%
   # id variable for matching validator checks
   mutate(id = row_number(), .before = financial_year) %>% 
   mutate(total_referrals = 1) %>% 
@@ -83,23 +79,41 @@ range(quarter$date_referral_true)
 ## This allows pass results (logical TRUE) to more easily be converted to 
 ## an integer for summarizing (sections 4 & 5).
 
-### A. Check referral data ----
-check_refs <- validator("not_recorded_recommend" = result_outcome %in% c("05","06")
-                        & is.na(referral_error_manage)) #,
-                         "missing_simd" = is.na(simd2020v2_sc_quintile),
-                         "missing_gp" = is.na(practice_code))
+### A. Referred in error ----
+check_refs <- validator("not_recorded_recommend" = result_outcome %in% c("02","06")
+                        & is.na(referral_error_manage))
 
-review_roots <- confront(quarter, check_refs, key  ="id")
-summary(review_roots)
+review_refs <- confront(quarter, check_refs, key  ="id")
+summary(review_refs)
 
 
+### B. Check dates ----
+## Remove patients where OP appointment not needed
+quarter %<>%
+  filter(result_outcome != "02",
+         largest_measure >= 5.5) %>%
+  mutate(days_screening_extract = as.Date(date_extract) - date_screen) %>% 
+  glimpse()
+
+check_dates <- validator("date_screen_extract" = date_screen > date_extract,
+                         "date_surgery_na" = is.na(date_surgery),
+                         "date_ref_refTrue" = abs(date_referral - date_referral_true) > 3,
+                         "date_seenOP_na" = is.na(date_seen_outpatient),
+                         "date_death_na" = result_outcome %in% c("04","05","07","12","16") &
+                           is.na(date_death),
+                         # move below out of date section
+                         "not_recorded_result_outcome" = result_outcome == "99")#, # not sure can't leave as NAs
+                         "correct_FYQ" = fy_quarter > fyq_current)## still to be replaced
+
+review_dates <- confront(quarter, check_dates, key  ="id")
+summary(review_dates)
 
 
-
-
-
-
-
-
+####
+## Start at:
+## SPSS line 187
+# ******************************************************************************.
+# ***ERROR FLAGS FOR CHECKS ON DATE SEQUENCE****.
+# ******************************************************************************.
 
 

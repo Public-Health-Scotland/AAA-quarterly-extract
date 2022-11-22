@@ -25,14 +25,13 @@
 
 #### 1: Housekeeping ####
 ## Packages
-library(here)
 library(dplyr)
 #library(magrittr)
 library(stringr)
 #library(forcats)
 library(readr)
-#library(phsmethods)
 library(validate)
+library(arsenal)
 library(tidylog)
 
 
@@ -89,7 +88,7 @@ check_dates <- validator("date_offer_screen" = date_offer_sent > date_screen,
                          "date_refTrue_seenOP" = 
                            date_referral_true > date_seen_outpatient,
                          "date_seenOP_surgery" = 
-                           date_seen_outpatient > date_surgery, # Is this accurate?? Assuming the initial appt is an assessment...
+                           date_seen_outpatient > date_surgery, # Is this accurate?? Assuming initial appt is an assessment...
                          "date_surgery_death" = date_surgery > date_death,
                          "correct_FYQ" = fy_quarter > fyq_current)
 
@@ -133,9 +132,9 @@ check_results <- validator("patient_attend" = att_dna == "05",
                              is.na(followup_recom),
                            "no_result_followup" = att_dna == "05" & 
                              is.na(screen_result) & is.na(followup_recom),
-                           "invalid_measure_1" = screen_result == "01" & # Should this also include "05" (external result)?
+                           "invalid_measure_1" = screen_result == "01" &
                              largest_measure < 3,
-                           "invalid_measure_2" = screen_result == "02" & # Should this also include "06" (external result)?
+                           "invalid_measure_2" = screen_result == "02" &
                              largest_measure >= 3)
 
 review_results <- confront(quarter, check_results, key  ="id")
@@ -190,6 +189,8 @@ table(very_large$fy_quarter)
 # q1 <- quarter %>%
 #   mutate(aaa_size_group = recode(aaa_size_group,
 #                                  "very large error" = "large"))
+## Should this be removed? Would be better to keep both & change filter to 
+## include both where processed in scripts?
 
 
 #### 4a. Combine checks -- summaries ####
@@ -318,7 +319,8 @@ summary <- rbind(summary_scot, summary_hb)
 ## Bring in records from previous extract run to do comparison of numbers
 old_path <-paste0("/PHI_conf/AAA/Portfolio/Data/RoutineExtracts",
                   "/", year, "0601") # delete in future, once files are moved to new set-up
-historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_202206.rds")) # change 'old_path' for 'previous_path' once new folders set up
+historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_202206.rds")) 
+# change 'old_path' for 'previous_path' once new folders set up
 
 names(historic_checks)
 names(summary)
@@ -329,4 +331,12 @@ table(summary$fy_quarter) # should be same except most recent fy_quarters will h
 hist_scot <- historic_checks[historic_checks$hbres == "Scotland",]
 
 
+table(hist_scot$fy_quarter)
+table(summary_scot$fy_quarter) # should be same except most recent fy_quarters will have increased
 
+
+summary(comparedf(hist_scot, summary_scot))
+
+
+write_csv(hist_scot, paste0(wd_path, "/temp/Scotland_historic.csv"))
+write_csv(summary_scot, paste0(wd_path, "/temp/Scotland_summary.csv"))
