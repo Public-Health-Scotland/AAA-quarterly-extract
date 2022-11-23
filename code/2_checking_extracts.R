@@ -26,9 +26,7 @@
 #### 1: Housekeeping ####
 ## Packages
 library(dplyr)
-#library(magrittr)
 library(stringr)
-#library(forcats)
 library(readr)
 library(validate)
 library(arsenal)
@@ -87,8 +85,6 @@ check_dates <- validator("date_offer_screen" = date_offer_sent > date_screen,
                          "date_verified_referral" = date_verified > date_referral,
                          "date_refTrue_seenOP" = 
                            date_referral_true > date_seen_outpatient,
-                         "date_seenOP_surgery" = 
-                           date_seen_outpatient > date_surgery, # Is this accurate?? Assuming initial appt is an assessment...
                          "date_surgery_death" = date_surgery > date_death,
                          "correct_FYQ" = fy_quarter > fyq_current)
 
