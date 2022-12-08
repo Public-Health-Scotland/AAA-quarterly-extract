@@ -46,12 +46,13 @@ rm(list = ls())
 year <- 2022
 month <- "09"
 date_extract <- "2022-09-14"
-date_cutoff <- "2022-09-01" # Should be day extract prepared... should it be last day of previous month??
+# Cutoff should be day extract prepared... should it be last day of previous month??
+date_cutoff <- "2022-09-01" 
+today <- paste0("Workbook printed ", Sys.Date())
 
-  
+
 ## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
-                 "/", year, month)
+wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts", "/", year, month)
 
 
 #### 2: Call in extract ####
@@ -125,7 +126,7 @@ quarter_outcome <- quarter %>%
 check_outcomes <- validator("result_outcome_na" = result_outcome == "99", # not sure why can't leave as NAs
                             "outcome_no_OP" = result_outcome %in% c("01","02","03","04","05") &
                               (!is.na(date_seen_outpatient) | !is.na(surg_method) |
-                              !is.na(date_surgery)),
+                                 !is.na(date_surgery)),
                             "outcome_no_OP_died04" = result_outcome == "04" &
                               days_screen_death > 10,
                             "outcome_no_OP_died05" = result_outcome == "05" &
@@ -146,7 +147,6 @@ check_outcomes <- validator("result_outcome_na" = result_outcome == "99", # not 
 
 review_outcomes <- confront(quarter_outcome, check_outcomes, key  ="id")
 summary(review_outcomes)
-
 
 ## Check: these will likely be ongoing cases with most recent financial year.
 x <- quarter[quarter$result_outcome == 99,]
@@ -242,12 +242,12 @@ otherfinal_year <- otherfinal %>%
   pivot_wider(names_from = financial_year, values_from = n, 
               names_sort =TRUE) %>% 
   replace(is.na(.), 0)
-  
+
 table(appt_notreq$largest_measure, appt_notreq$result_outcome)
 table(appt_notreq$referral_error_manage)
 
 
-### Outcomes for patients who died
+### Outcomes for patients who died ---
 ## Records list
 mort <- quarter %>%
   filter(result_outcome %in% c("04","05","07","12","16")) %>% 
@@ -255,7 +255,7 @@ mort <- quarter %>%
          date_screen, screen_type, largest_measure,
          screen_result, followup_recom, 
          date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, surg_method,
+         result_outcome, first_outcome, surg_method, 
          date_surgery, date_death, aneurysm_related) %>% 
   arrange(hbres, fy_quarter)
 
@@ -284,26 +284,29 @@ mort_year <- mort %>%
 ## Currently printing out into a single workbook to send to leads, but better
 ## to send to HBs??
 
-### Set styles ---
+### Setup workbook ---
+## Reset variable names
+records_var <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+                 "Date Screened", "Screening Type", "Largest Measurement",
+                 "Screening Result", "Follow-up Recommendation", "Date of Referral",
+                 "Actual Date of Referral", "Date Seen in Outpatient", 
+                 "Result Outcome", "First Outcome", "Referral Error Management", 
+                 "Surgery Method", "Date of Surgery", "Date of Death", 
+                 "Aneurysm Related Death")
+records_mort <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+                  "Date Screened", "Screening Type", "Largest Measurement",
+                  "Screening Result", "Follow-up Recommendation", "Date of Referral",
+                  "Actual Date of Referral", "Date Seen in Outpatient", 
+                  "Result Outcome", "First Outcome", "Surgery Method", 
+                  "Date of Surgery", "Date of Death", "Aneurysm Related Death")
+
 ## Styles
-title_style <- createStyle(halign = "Left", textDecoration = "bold")
+title_style <- createStyle(fontSize = 12, halign = "Left", textDecoration = "bold")
 table_style <- createStyle(valign = "Bottom", halign = "Left",
-  border = "TopBottomLeftRight")
+                           border = "TopBottomLeftRight")
 
 ## Titles
 title_date <- paste0(month.name[as.numeric(month)], " ", year)
-title_page1 <- "Vascular appointment not needed by health board and financial year"
-title_page2 <- "Non-final outcomes by health board and financial year"
-title_page3 <- "Other final outcomes by health board and financial year"
-title_page4 <- "Deaths by health board and financial year"
-
-## Column names
-records <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
-             "Date Screened", "Screening Type", "Largest Measurement",
-             "Screening Result", "Follow-up Recommendation", "Date of Referral",
-             "Actual Date of Referral", "Date Seen in Outpatient", "Result Outcome", 
-             "First Outcome", "Referral Error Management", "Surgery Method", 
-             "Date of Surgery", "Date of Death", "Aneurysm Related Death")
 
 ## Setup workbook
 wb <- createWorkbook()
@@ -313,83 +316,119 @@ modifyBaseFont(wb, fontSize = 11, fontName = "Arial")
 
 ### Vascular appointment not needed ---
 addWorksheet(wb, sheetName = "Appointment not needed", gridLines = FALSE)
-writeData(wb, sheet = "Appointment not needed", appt_notreq_hb,
-               colNames = TRUE, startRow = 4)
-writeData(wb, sheet = "Appointment not needed", appt_notreq_year,
-               colNames = TRUE, startRow = 7)
-writeData(wb, sheet = "Appointment not needed", appt_notreq, 
-               colNames = TRUE, startRow = 22)
+writeData(wb, sheet = "Appointment not needed", appt_notreq_hb, startRow = 4)
+writeData(wb, sheet = "Appointment not needed", appt_notreq_year, startRow = 8)
+writeDataTable(wb, sheet = "Appointment not needed", appt_notreq, startRow = 24)
 
-# Titles
-writeData(wb, "Appointment not needed", title_page1, startCol = 1, startRow = 1)
-writeData(wb, "Appointment not needed", title_date, startCol = 1, startRow = 2)
+# titles
+title_appt_notreq <- "Vascular appointment not needed by health board and financial year"
+writeData(wb, "Appointment not needed", title_appt_notreq, startRow = 1, startCol = 1)
+writeData(wb, "Appointment not needed", title_date, startRow = 2, startCol = 1)
+writeData(wb, "Appointment not needed", today, startRow = 3, startCol = 1)
 addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
 
-# Tables
-addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
-addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
-addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
+# table headers
+names(appt_notreq) <- records_var
+addStyle(wb, "Appointment not needed", title_style, rows = 4, cols = 1:ncol(appt_notreq_hb))
+addStyle(wb, "Appointment not needed", title_style, rows = 8, cols = 1:ncol(appt_notreq_year))
+addStyle(wb, "Appointment not needed", title_style, rows = 24, cols = 1:ncol(appt_notreq))
+
+# tables
 addStyle(wb, "Appointment not needed", table_style, rows = 4:5, 
-         cols = 1:ncol(appt_notreq_hb), gridExpand = TRUE)
-addStyle(wb, "Appointment not needed", table_style, rows = 7:nrow(appt_notreq_year), 
-         cols = 1:ncol(appt_notreq_year), gridExpand = TRUE)
-addStyle(wb, "Appointment not needed", table_style, rows = 22:nrow(appt_notreq), 
-         cols = 1:ncol(appt_notreq), gridExpand = TRUE)
+         cols = 1:ncol(appt_notreq_hb), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, "Appointment not needed", table_style, rows = 8:(8+nrow(appt_notreq_year)), 
+         cols = 1:ncol(appt_notreq_year), gridExpand = TRUE, stack = TRUE)
 
-# Rename records table
-writeData(wb, "Appointment not needed", appt_notreq %>% rename(!!!records), 
-          startCol = 1, startRow = 22)
 setColWidths(wb, "Appointment not needed", cols = 1:ncol(appt_notreq), 
              widths = "auto")
 
 
-### Non-final outcomes ---
+### Non-final outcomes ----
 addWorksheet(wb, sheetName = "Non-final Outcomes", gridLines = FALSE)
-writeData(wb, sheet = "Non-final Outcomes", nonfinal_hb,
-               colNames = TRUE, startRow = 4)
-writeData(wb, sheet = "Non-final Outcomes", nonfinal_year,
-               colNames = TRUE, startRow = 7)
-writeData(wb, sheet = "Non-final Outcomes", nonfinal,
-               colNames = TRUE, startRow = 22)
+writeData(wb, sheet = "Non-final Outcomes", nonfinal_hb, startRow = 4)
+writeData(wb, sheet = "Non-final Outcomes", nonfinal_year, startRow = 8)
+writeDataTable(wb, sheet = "Non-final Outcomes", nonfinal, startRow = 24)
 
-writeData(wb, "Non-final Outcomes", title_page2, startCol = 1, startRow = 1)
-writeData(wb, "Non-final Outcomes", title_date, startCol = 1, startRow = 2)
+# titles
+title_nonfinal <- "Non-final outcomes by health board and financial year"
+writeData(wb, "Non-final Outcomes", title_nonfinal, startRow = 1, startCol = 1)
+writeData(wb, "Non-final Outcomes", title_date, startRow = 2, startCol = 1)
+writeData(wb, "Non-final Outcomes", today, startRow = 3, startCol = 1)
 addStyle(wb, "Non-final Outcomes", title_style, rows = 1:2, cols = 1)
 
-writeData(wb, "Non-final Outcomes", records, startCol = 1, startRow = 22)
+# table headers
+names(nonfinal) <- records_var
+addStyle(wb, "Non-final Outcomes", title_style, rows = 4, cols = 1:ncol(nonfinal_hb))
+addStyle(wb, "Non-final Outcomes", title_style, rows = 8, cols = 1:ncol(nonfinal_year))
+addStyle(wb, "Non-final Outcomes", title_style, rows = 24, cols = 1:ncol(nonfinal))
+
+# tables
+addStyle(wb, "Non-final Outcomes", table_style, rows = 4:5, 
+         cols = 1:ncol(nonfinal_hb), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, "Non-final Outcomes", table_style, rows = 8:(8+nrow(nonfinal_year)), 
+         cols = 1:ncol(nonfinal_year), gridExpand = TRUE, stack = TRUE)
+
 setColWidths(wb, "Non-final Outcomes", cols = 1:ncol(nonfinal), 
              widths = "auto")
 
 
-### Other final outcomes ---
+### Other final outcomes ----
 addWorksheet(wb, sheetName = "Other Final Outcomes", gridLines = FALSE)
-writeData(wb, sheet = "Other Final Outcomes", otherfinal_hb, 
-               colNames = TRUE, startRow = 4)
-writeData(wb, sheet = "Other Final Outcomes", otherfinal_year, 
-               colNames = TRUE, startRow = 7)
-writeData(wb, sheet = "Other Final Outcomes", otherfinal, 
-               colNames = TRUE, startRow = 19)
+writeData(wb, sheet = "Other Final Outcomes", otherfinal_hb, startRow = 4)
+writeData(wb, sheet = "Other Final Outcomes", otherfinal_year, startRow = 8)
+writeDataTable(wb, sheet = "Other Final Outcomes", otherfinal, startRow = 24)
 
-writeData(wb, "Other Final Outcomes", title_page3, startCol = 1, startRow = 1)
-writeData(wb, "Other Final Outcomes", title_date, startCol = 1, startRow = 2)
+# titles
+title_otherfinal <- "Other final outcomes by health board and financial year"
+writeData(wb, "Other Final Outcomes", title_otherfinal, startRow = 1, startCol = 1)
+writeData(wb, "Other Final Outcomes", title_date, startRow = 2, startCol = 1)
+writeData(wb, "Other Final Outcomes", today, startRow = 3, startCol = 1)
 addStyle(wb, "Other Final Outcomes", title_style, rows = 1:2, cols = 1)
 
+# table headers
+names(otherfinal) <- records_var
+addStyle(wb, "Other Final Outcomes", title_style, rows = 4, cols = 1:ncol(otherfinal_hb))
+addStyle(wb, "Other Final Outcomes", title_style, rows = 8, cols = 1:ncol(otherfinal_year))
+addStyle(wb, "Other Final Outcomes", title_style, rows = 24, cols = 1:ncol(otherfinal))
 
-### Deaths ---
+# tables
+addStyle(wb, "Other Final Outcomes", table_style, rows = 4:5, 
+         cols = 1:ncol(otherfinal_hb), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, "Other Final Outcomes", table_style, rows = 8:(8+nrow(otherfinal_year)), 
+         cols = 1:ncol(otherfinal_year), gridExpand = TRUE, stack = TRUE)
+
+setColWidths(wb, "Other Final Outcomes", cols = 1:ncol(otherfinal), 
+             widths = "auto")
+
+
+### Deaths ----
 addWorksheet(wb, sheetName = "Deaths", gridLines = FALSE)
-writeData(wb, sheet = "Deaths", mort_hb, colNames = TRUE,
-               startRow = 4)
-writeData(wb, sheet = "Deaths", mort_year, colNames = TRUE,
-               startRow = 7)
-writeDataTable(wb, sheet = "Deaths", mort, colNames = TRUE,
-               startRow = 19, tableStyle = "TableStyleLight9")
-setColWidths(wb, "Deaths", cols = 1:ncol(mort), widths = "auto")
+writeData(wb, sheet = "Deaths", mort_hb, startRow = 4)
+writeData(wb, sheet = "Deaths", mort_year, startRow = 8)
+writeDataTable(wb, sheet = "Deaths", mort, startRow = 24)
 
-writeData(wb, "Deaths", title_page4, startCol = 1, startRow = 1)
-writeData(wb, "Deaths", title_date, startCol = 1, startRow = 2)
+# titles
+title_mort <- "Deaths by health board and financial year"
+writeData(wb, "Deaths", title_mort, startRow = 1, startCol = 1)
+writeData(wb, "Deaths", title_date, startRow = 2, startCol = 1)
+writeData(wb, "Deaths", today, startRow = 3, startCol = 1)
 addStyle(wb, "Deaths", title_style, rows = 1:2, cols = 1)
 
+# table headers
+names(mort) <- records_mort
+addStyle(wb, "Deaths", title_style, rows = 4, cols = 1:ncol(mort_hb))
+addStyle(wb, "Deaths", title_style, rows = 8, cols = 1:ncol(mort_year))
+addStyle(wb, "Deaths", title_style, rows = 24, cols = 1:ncol(mort))
 
-### Save ---
+# tables
+addStyle(wb, "Deaths", table_style, rows = 4:5, 
+         cols = 1:ncol(mort_hb), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, "Deaths", table_style, rows = 8:(8+nrow(mort_year)), 
+         cols = 1:ncol(mort_year), gridExpand = TRUE, stack = TRUE)
+
+setColWidths(wb, "Deaths", cols = 1:ncol(mort), widths = "auto")
+
+
+### Save ----
 saveWorkbook(wb, paste0(wd_path, "/output/Vascular_checks_", 
                         year, month, ".xlsx"), overwrite = TRUE)
