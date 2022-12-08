@@ -48,7 +48,7 @@ month <- "09"
 date_extract <- "2022-09-14"
 date_cutoff <- "2022-09-01" # Should be day extract prepared... should it be last day of previous month??
 
-
+  
 ## Pathways
 wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
@@ -109,6 +109,10 @@ check_dates <- validator("date_screen_extract" = date_screen > date_extract,
 review_dates <- confront(quarter_date, check_dates, key  ="id")
 summary(review_dates)
 
+## Check: these will likely be ongoing cases with most recent financial year;
+# can also chekc result_outcome, as likely cases that are ongoing.
+x <- quarter_date[is.na(quarter_date$date_seen_outpatient),]
+
 
 ### C. Check result outcomes ----
 quarter_outcome <- quarter %>%
@@ -138,14 +142,50 @@ check_outcomes <- validator("result_outcome_na" = result_outcome == "99", # not 
                             "outcome_surg_abandon" = surg_method == "03" &
                               (result_outcome != "20" | is.na(date_surgery)),
                             "outcome_no_final" = result_outcome %in% 
-                              c("09","10","14","17","18","19"))#,
+                              c("09","10","14","17","18","19"))
 
 review_outcomes <- confront(quarter_outcome, check_outcomes, key  ="id")
 summary(review_outcomes)
 
 
+## Check: these will likely be ongoing cases with most recent financial year.
+x <- quarter[quarter$result_outcome == 99,]
+
+
 #### 4. Create data subsets ####
-### Non-final outcomes
+### Vascular appointment not needed ---
+## Records list
+appt_notreq <- quarter %>%
+  filter(largest_measure < 5.5 |
+           result_outcome == "02") %>% 
+  select(financial_year, fy_quarter, upi, hbres,
+         date_screen, screen_type, largest_measure,
+         screen_result, followup_recom, 
+         date_referral, date_referral_true, date_seen_outpatient,
+         result_outcome, first_outcome, referral_error_manage,
+         surg_method, date_surgery, date_death, aneurysm_related) %>% 
+  arrange(hbres, fy_quarter)
+
+## HBs
+appt_notreq_hb <- appt_notreq %>% 
+  group_by(hbres) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = hbres, values_from = n)
+
+## HBs by year
+appt_notreq_year <- appt_notreq %>% 
+  arrange(financial_year) %>% 
+  group_by(hbres, financial_year) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = financial_year, values_from = n, 
+              names_sort =TRUE) %>% 
+  replace(is.na(.), 0)
+
+
+### Non-final outcomes ---
+## Records list
 nonfinal <- quarter %>%
   filter(result_outcome %in% c("09","10","14","17","18","19")) %>% 
   select(financial_year, fy_quarter, upi, hbres,
@@ -156,11 +196,26 @@ nonfinal <- quarter %>%
          surg_method, date_surgery, date_death, aneurysm_related) %>%
   arrange(hbres, fy_quarter)
 
-table(droplevels(nonfinal$hbres))
-table(droplevels(nonfinal$hbres), nonfinal$financial_year)
+## HBs
+nonfinal_hb <- nonfinal %>% 
+  group_by(hbres) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = hbres, values_from = n)
+
+## HBs by year
+nonfinal_year <- nonfinal %>% 
+  arrange(financial_year) %>% 
+  group_by(hbres, financial_year) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = financial_year, values_from = n, 
+              names_sort =TRUE) %>% 
+  replace(is.na(.), 0)
 
 
-### Other final outcomes
+### Other final outcomes ---
+## Records list
 otherfinal <- quarter %>%
   filter(result_outcome == "20") %>% 
   select(financial_year, fy_quarter, upi, hbres,
@@ -171,28 +226,29 @@ otherfinal <- quarter %>%
          surg_method, date_surgery, date_death, aneurysm_related) %>%
   arrange(hbres, fy_quarter)
 
-table(droplevels(otherfinal$hbres))
-table(otherfinal$financial_year, droplevels(otherfinal$hbres))
+## HBs
+otherfinal_hb <- otherfinal %>% 
+  group_by(hbres) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = hbres, values_from = n)
 
-
-### Vascular appointment not needed 
-appt_notreq <- quarter %>%
-  filter(largest_measure < 5.5 |
-         result_outcome == "02") %>% 
-  select(financial_year, fy_quarter, upi, hbres,
-         date_screen, screen_type, largest_measure,
-         screen_result, followup_recom, 
-         date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, referral_error_manage,
-         surg_method, date_surgery, date_death, aneurysm_related) %>% 
-  arrange(hbres, fy_quarter)
-
-table(appt_notreq$financial_year, droplevels(appt_notreq$hbres))
+## HBs by year
+otherfinal_year <- otherfinal %>% 
+  arrange(financial_year) %>% 
+  group_by(hbres, financial_year) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = financial_year, values_from = n, 
+              names_sort =TRUE) %>% 
+  replace(is.na(.), 0)
+  
 table(appt_notreq$largest_measure, appt_notreq$result_outcome)
 table(appt_notreq$referral_error_manage)
 
 
 ### Outcomes for patients who died
+## Records list
 mort <- quarter %>%
   filter(result_outcome %in% c("04","05","07","12","16")) %>% 
   select(financial_year, fy_quarter, upi, hbres,
@@ -203,7 +259,22 @@ mort <- quarter %>%
          date_surgery, date_death, aneurysm_related) %>% 
   arrange(hbres, fy_quarter)
 
-mort_table <- table(mort$financial_year, droplevels(mort$hbres))
+## HBs
+mort_hb <- mort %>% 
+  group_by(hbres) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = hbres, values_from = n)
+
+## HBs by year
+mort_year <- mort %>% 
+  arrange(financial_year) %>% 
+  group_by(hbres, financial_year) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = financial_year, values_from = n, 
+              names_sort =TRUE) %>% 
+  replace(is.na(.), 0)
 
 
 #### 5. Write to Excel ####
@@ -213,28 +284,112 @@ mort_table <- table(mort$financial_year, droplevels(mort$hbres))
 ## Currently printing out into a single workbook to send to leads, but better
 ## to send to HBs??
 
+### Set styles ---
+## Styles
+title_style <- createStyle(halign = "Left", textDecoration = "bold")
+table_style <- createStyle(valign = "Bottom", halign = "Left",
+  border = "TopBottomLeftRight")
+
+## Titles
+title_date <- paste0(month.name[as.numeric(month)], " ", year)
+title_page1 <- "Vascular appointment not needed by health board and financial year"
+title_page2 <- "Non-final outcomes by health board and financial year"
+title_page3 <- "Other final outcomes by health board and financial year"
+title_page4 <- "Deaths by health board and financial year"
+
+## Column names
+records <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+             "Date Screened", "Screening Type", "Largest Measurement",
+             "Screening Result", "Follow-up Recommendation", "Date of Referral",
+             "Actual Date of Referral", "Date Seen in Outpatient", "Result Outcome", 
+             "First Outcome", "Referral Error Management", "Surgery Method", 
+             "Date of Surgery", "Date of Death", "Aneurysm Related Death")
+
+## Setup workbook
 wb <- createWorkbook()
 options("openxlsx.borderStyle" = "thin")
 modifyBaseFont(wb, fontSize = 11, fontName = "Arial")
 
+
+### Vascular appointment not needed ---
 addWorksheet(wb, sheetName = "Appointment not needed", gridLines = FALSE)
-writeDataTable(wb, sheet = "Appointment not needed", appt_notreq, colNames = TRUE,
-               startRow = 14)#, tableStyle = "tableStyle")
+writeData(wb, sheet = "Appointment not needed", appt_notreq_hb,
+               colNames = TRUE, startRow = 4)
+writeData(wb, sheet = "Appointment not needed", appt_notreq_year,
+               colNames = TRUE, startRow = 7)
+writeData(wb, sheet = "Appointment not needed", appt_notreq, 
+               colNames = TRUE, startRow = 22)
+
+# Titles
+writeData(wb, "Appointment not needed", title_page1, startCol = 1, startRow = 1)
+writeData(wb, "Appointment not needed", title_date, startCol = 1, startRow = 2)
+addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
+
+# Tables
+addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
+addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
+addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
+addStyle(wb, "Appointment not needed", table_style, rows = 4:5, 
+         cols = 1:ncol(appt_notreq_hb), gridExpand = TRUE)
+addStyle(wb, "Appointment not needed", table_style, rows = 7:nrow(appt_notreq_year), 
+         cols = 1:ncol(appt_notreq_year), gridExpand = TRUE)
+addStyle(wb, "Appointment not needed", table_style, rows = 22:nrow(appt_notreq), 
+         cols = 1:ncol(appt_notreq), gridExpand = TRUE)
+
+# Rename records table
+writeData(wb, "Appointment not needed", appt_notreq %>% rename(!!!records), 
+          startCol = 1, startRow = 22)
+setColWidths(wb, "Appointment not needed", cols = 1:ncol(appt_notreq), 
+             widths = "auto")
 
 
+### Non-final outcomes ---
+addWorksheet(wb, sheetName = "Non-final Outcomes", gridLines = FALSE)
+writeData(wb, sheet = "Non-final Outcomes", nonfinal_hb,
+               colNames = TRUE, startRow = 4)
+writeData(wb, sheet = "Non-final Outcomes", nonfinal_year,
+               colNames = TRUE, startRow = 7)
+writeData(wb, sheet = "Non-final Outcomes", nonfinal,
+               colNames = TRUE, startRow = 22)
 
-addWorksheet(wb, sheetName = "Outcomes", gridLines = FALSE)
+writeData(wb, "Non-final Outcomes", title_page2, startCol = 1, startRow = 1)
+writeData(wb, "Non-final Outcomes", title_date, startCol = 1, startRow = 2)
+addStyle(wb, "Non-final Outcomes", title_style, rows = 1:2, cols = 1)
+
+writeData(wb, "Non-final Outcomes", records, startCol = 1, startRow = 22)
+setColWidths(wb, "Non-final Outcomes", cols = 1:ncol(nonfinal), 
+             widths = "auto")
 
 
+### Other final outcomes ---
+addWorksheet(wb, sheetName = "Other Final Outcomes", gridLines = FALSE)
+writeData(wb, sheet = "Other Final Outcomes", otherfinal_hb, 
+               colNames = TRUE, startRow = 4)
+writeData(wb, sheet = "Other Final Outcomes", otherfinal_year, 
+               colNames = TRUE, startRow = 7)
+writeData(wb, sheet = "Other Final Outcomes", otherfinal, 
+               colNames = TRUE, startRow = 19)
 
+writeData(wb, "Other Final Outcomes", title_page3, startCol = 1, startRow = 1)
+writeData(wb, "Other Final Outcomes", title_date, startCol = 1, startRow = 2)
+addStyle(wb, "Other Final Outcomes", title_style, rows = 1:2, cols = 1)
+
+
+### Deaths ---
 addWorksheet(wb, sheetName = "Deaths", gridLines = FALSE)
-writeDataTable(wb, sheet = "Deaths", as.data.frame(mort_table), colNames = TRUE,
-               startRow = 1, tableStyle = "TableStyleLight9")
+writeData(wb, sheet = "Deaths", mort_hb, colNames = TRUE,
+               startRow = 4)
+writeData(wb, sheet = "Deaths", mort_year, colNames = TRUE,
+               startRow = 7)
 writeDataTable(wb, sheet = "Deaths", mort, colNames = TRUE,
-               startRow = 14, tableStyle = "TableStyleLight9")
+               startRow = 19, tableStyle = "TableStyleLight9")
 setColWidths(wb, "Deaths", cols = 1:ncol(mort), widths = "auto")
 
+writeData(wb, "Deaths", title_page4, startCol = 1, startRow = 1)
+writeData(wb, "Deaths", title_date, startCol = 1, startRow = 2)
+addStyle(wb, "Deaths", title_style, rows = 1:2, cols = 1)
 
 
+### Save ---
 saveWorkbook(wb, paste0(wd_path, "/output/Vascular_checks_", 
                         year, month, ".xlsx"), overwrite = TRUE)

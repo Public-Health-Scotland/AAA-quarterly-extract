@@ -31,6 +31,7 @@ rm(list = ls())
 ## Values
 year <- 2022
 month <- "09"
+date_download <- "20220914"
 
 
 ## Pathways
@@ -47,7 +48,7 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 
 #### 2: Main extract ####
 ## Import and rename ---
-quarter <- read_csv(paste0(wd_path, "/raw_data/ISD.CSV"), 
+quarter <- read_csv(paste0(wd_path, "/raw_data/ISD ", date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(X5 = col_date("%Y%m%d"),
                                    X12 = col_date("%Y%m%d"),
@@ -173,6 +174,10 @@ quarter %<>%
                                        financial_quarter == "Oct" ~ 3),
          fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
   mutate(fy_quarter = if_else(fy_quarter == "NA_NA", "unrecorded", fy_quarter)) %>%  
+  mutate(financial_year = fct_relevel(financial_year, 
+                                      c("2012/13", "2013/14", "2014/15", "2015/16", 
+                                        "2016/17", "2017/18", "2018/19", "2019/20", 
+                                        "2020/21", "2021/22", "2022/23"))) %>% 
   arrange(upi, fy_quarter) %>% 
   glimpse()
 
@@ -265,7 +270,8 @@ saveRDS(quarter, paste0(wd_path,
 
 #### 3: Exclusions extract ####
 ## Import and process ---
-exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions.CSV"), 
+exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions ", 
+                           date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(X5 = col_date("%Y%m%d"),
                                    X7 = col_date("%Y%m%d"),
