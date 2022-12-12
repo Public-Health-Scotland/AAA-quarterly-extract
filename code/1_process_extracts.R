@@ -2,7 +2,7 @@
 # 1_process_extracts.R
 # Karen Hotopp
 # 14/10/2022
-# Script 1 of ?
+# Script 1 of 3
 # 
 # Imports and formats BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
@@ -159,6 +159,10 @@ table(quarter$hb_screen, useNA = "ifany")
 
 
 ## Add financial year and quarter ---
+# Check latest dates of date_screen for fct_relevel of financial_year
+# (add new level below if needed)
+tail(table(quarter$date_screen))
+
 # Create financial year/quarter from screening date
 quarter %<>%
   mutate(financial_year = extract_fin_year(date_screen),
