@@ -30,8 +30,8 @@ rm(list = ls())
 
 ## Values
 year <- 2022
-month <- "09"
-date_download <- "20220914"
+month <- "12"
+date_download <- "20221206"
 
 
 ## Pathways
@@ -48,26 +48,23 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 
 #### 2: Main extract ####
 ## Import and rename ---
+# All columns should be character except date variables listed below.
 quarter <- read_csv(paste0(wd_path, "/raw_data/ISD ", date_download, ".CSV"), 
                     col_names = FALSE, 
-                    col_types=cols(X5 = col_date("%Y%m%d"),
+                    col_types=cols(.default = "c",
+                                   X5 = col_date("%Y%m%d"),
                                    X12 = col_date("%Y%m%d"),
                                    X16 = col_date("%Y%m%d"),
                                    X19 = col_date("%Y%m%d"),
-                                   X20 = col_character(),
-                                   X21 = col_character(),
                                    X25 = col_date("%Y%m%d"),
                                    X26 = col_date("%Y%m%d"),
                                    X27 = col_date("%Y%m%d"),
-                                   X28 = col_character(),
+                                   X29 = col_double(),
+                                   X30 = col_double(),
+                                   X31 = col_double(),
                                    X33 = col_date("%Y%m%d"),
                                    X34 = col_date("%Y%m%d"),
-                                   X35 = col_date("%Y%m%d"),
-                                   X36 = col_character(),
-                                   X41 = col_character(),
-                                   X42 = col_character(),
-                                   X45 = col_character(),
-                                   X47 = col_character())) %>% 
+                                   X35 = col_date("%Y%m%d"))) %>% 
   glimpse()
 
 names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
@@ -175,9 +172,11 @@ quarter %<>%
          fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
   mutate(fy_quarter = if_else(fy_quarter == "NA_NA", "unrecorded", fy_quarter)) %>%  
   mutate(financial_year = fct_relevel(financial_year, 
-                                      c("2012/13", "2013/14", "2014/15", "2015/16", 
-                                        "2016/17", "2017/18", "2018/19", "2019/20", 
-                                        "2020/21", "2021/22", "2022/23"))) %>% 
+                                      c("2010/11", "2011/12", "2012/13", "2013/14", 
+                                        "2014/15", "2015/16", "2016/17", "2017/18", 
+                                        "2018/19", "2019/20", "2020/21", "2021/22", 
+                                        "2022/23", "2023/24", "2025/26", "2056/57")
+                                      )) %>% 
   arrange(upi, fy_quarter) %>% 
   glimpse()
 
@@ -273,7 +272,8 @@ saveRDS(quarter, paste0(wd_path,
 exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions ", 
                            date_download, ".CSV"), 
                     col_names = FALSE, 
-                    col_types=cols(X5 = col_date("%Y%m%d"),
+                    col_types=cols(.default = "c",
+                                   X5 = col_date("%Y%m%d"),
                                    X7 = col_date("%Y%m%d"),
                                    X8 = col_date("%Y%m%d"))) %>%
   select(X1, X2, X5, X6, X7, X8, X9) %>% 

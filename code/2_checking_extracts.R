@@ -38,19 +38,24 @@ rm(list = ls())
 
 ## Values
 year <- 2022
-month <- "09"
+month <- "12"
+previous <- 202209
 # Financial year and quarter of current extract
-fyq_current <- "2022/23_2"
+#March = q1
+#June = q2
+#Sept = q3
+#Dec = q4
+fyq_current <- "2022/23_4"
 
 
 ## Pathways
 wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
 previous_path <- paste0("PHI_conf/AAA/Topics/Screening/extracts",
-                        "/202206") # Don't have a fancy way to automate this, so will need to just be hand-entered
+                        "/", previous)
 
 #### 2: Call in extract ####
-quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>% 
+quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")) %>% 
   # exclude cases with results obtained outside of Scotland 
   filter(!screen_result %in% c("05", "06")) %>% 
   # id variable for matching validator checks
@@ -58,7 +63,7 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_202209.rds")) %>%
   glimpse()
   
 length(unique(quarter$upi))
-# 366,571 of 523071 records
+# 375,084 of 536613 records
 
 
 #### 3. Validate data ####
@@ -86,38 +91,43 @@ check_dates <- validator("date_offer_screen" = date_offer_sent > date_screen,
                          "date_refTrue_seenOP" = 
                            date_referral_true > date_seen_outpatient,
                          "date_surgery_death" = date_surgery > date_death,
-                         "correct_FYQ" = fy_quarter > fyq_current)
+                         "correct_FYQ" = fy_quarter != "unrecorded" & 
+                           fy_quarter > fyq_current)
 
 review_dates <- confront(quarter, check_dates, key  ="id")
 summary(review_dates)
 
-# ####
-# ## Screenings by quarter
-# annual <- quarter %>% 
-#   mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>% 
-#   group_by(fy_quarter) %>% 
-#   summarize(screenings = sum(count_screens)) %>% 
-#   ungroup()
-# 
-# tail(annual)  
-# # Note that last three lines have not happened yet (for this data set):
-# # 4 2022/23 3        1054
-# # 5 2025/26 2           1
-# # 6 2056/57 2           1
-# # 
-# # These were appointments that were set up with the wrong dates
-# # and subsequently cancelled by the screening provider.
-# 
-# ## Remove screen_result == NA  
-# temp <- quarter %>% 
-#   filter(!is.na(screen_result)) %>% 
-#   mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>% 
-#   group_by(fy_quarter) %>% 
-#   summarize(screenings = sum(count_screens)) %>% 
-#   ungroup() 
-# 
-# tail(temp) 
-# ####
+####
+## Screenings by quarter
+annual <- quarter %>%
+  mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>%
+  group_by(fy_quarter) %>%
+  summarize(screenings = sum(count_screens)) %>%
+  ungroup()
+
+tail(annual)
+# Note that last three quarters have not happened yet (for this data set):
+# 2022/23_2         224  # appointments have been set up but not happened
+# 2022/23_3           1
+# 2025/26_2           1
+# 2056/57_2           1
+# unrecorded          0
+#
+# These were appointments that were set up with the wrong dates
+# and subsequently cancelled by the screening provider.
+
+## Remove screen_result == NA
+temp <- quarter %>%
+  filter(!is.na(screen_result)) %>%
+  mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>%
+  group_by(fy_quarter) %>%
+  summarize(screenings = sum(count_screens)) %>%
+  ungroup()
+
+tail(temp)
+
+rm(annual, temp)
+####
 
 
 ### C. Check results ----
@@ -140,8 +150,10 @@ summary(review_results)
 hb_norf <- quarter %>%
   filter(att_dna == "05", is.na(followup_recom)) %>% 
   arrange(hb_screen, fy_quarter)
+
 table(droplevels(hb_norf$hb_screen))
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
+# Follow up with HBs if any occur in current fy_quarter
 
 
 ### D. Check audits ----
@@ -178,8 +190,10 @@ table(quarter$aaa_size_group)
 
 very_large <- quarter[(quarter$aaa_size_group == "very large error" &
                          !is.na(quarter$aaa_size_group)),]
-## Check if these are current FY/quarter; if so, should be sent back to HBs for checking
+
 table(very_large$fy_quarter)
+# Follow up with HBs if any occur in current fy_quarter
+
 
 ## Then recode to "large"
 # q1 <- quarter %>%
@@ -228,14 +242,14 @@ quarter_checks <- quarter %>%
   left_join(review, by = c('id')) %>% 
   glimpse
 
+# # To view results that stand out:
+# quarter_checks %>% filter(!HB_res_screen == 1) %>%
+#   View()
+
 rm(check_roots, check_dates, check_results, check_audits,
    review_roots, review_dates, review_results, review_audits,
    review_roots_df, review_dates_df, review_results_df, review_audits_df,
    roots, dates, results, audits)
-
-# # View results that stand out
-# quarter_checks %>% filter(!HB_res_screen == 1) %>%
-#   View()
 
 
 #### 5. Summarize ####
@@ -253,7 +267,6 @@ summary_scot <- quarter_checks %>%
             date_verified_before_result_n = sum(date_result_verified,na.rm=TRUE),
             date_referral_before_verified_n = sum(date_verified_referral,na.rm=TRUE),
             date_seenOP_before_refTrue_n = sum(date_refTrue_seenOP,na.rm=TRUE),
-            date_surgery_before_seenOP_n = sum(date_seenOP_surgery,na.rm=TRUE),
             date_death_before_surgery_n = sum(date_surgery_death,na.rm=TRUE),
             not_recorded_result_n = sum(not_recorded_result,na.rm=TRUE),
             not_recorded_followup_n = sum(not_recorded_followup,na.rm=TRUE),
@@ -292,7 +305,6 @@ summary_hb <- quarter_checks %>%
             date_verified_before_result_n = sum(date_result_verified,na.rm=TRUE),
             date_referral_before_verified_n = sum(date_verified_referral,na.rm=TRUE),
             date_seenOP_before_refTrue_n = sum(date_refTrue_seenOP,na.rm=TRUE),
-            date_surgery_before_seenOP_n = sum(date_seenOP_surgery,na.rm=TRUE),
             date_death_before_surgery_n = sum(date_surgery_death,na.rm=TRUE),
             not_recorded_result_n = sum(not_recorded_result,na.rm=TRUE),
             not_recorded_followup_n = sum(not_recorded_followup,na.rm=TRUE),
@@ -311,28 +323,46 @@ summary_hb <- quarter_checks %>%
 summary <- rbind(summary_scot, summary_hb)
 
 
+#### Save files ----
+saveRDS(summary, paste0(wd_path, "/checks/aaa_checks_summary_", 
+                        year, month, ".rds"))
+saveRDS(summary_checks, paste0(wd_path, "/checks/aaa_checks_finyear_", 
+                               year, month, ".rds"))
+
+
 #### 6. Compare ####
 ## Bring in records from previous extract run to do comparison of numbers
+# delete next two commands in future, once files are moved to new set-up
+# and uncomment one using 'previous_path'
 old_path <-paste0("/PHI_conf/AAA/Portfolio/Data/RoutineExtracts",
-                  "/", year, "0601") # delete in future, once files are moved to new set-up
-historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_202206.rds")) 
-# change 'old_path' for 'previous_path' once new folders set up
+                   "/", year, "0601")
+historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_",
+                                   "202206.rds"))
+# historic_checks <- readRDS(paste0(previous_path, "/checks/aaa_checks_summary_",
+#                                   previous, ".rds"))
 
 names(historic_checks)
 names(summary)
 
+# should be same except most recent fy_quarters will have increased
 table(historic_checks$fy_quarter)
-table(summary$fy_quarter) # should be same except most recent fy_quarters will have increased
+table(summary$fy_quarter) 
 
 hist_scot <- historic_checks[historic_checks$hbres == "Scotland",]
 
 
+# should be same
 table(hist_scot$fy_quarter)
-table(summary_scot$fy_quarter) # should be same except most recent fy_quarters will have increased
+table(summary_scot$fy_quarter) 
 
 
 summary(comparedf(hist_scot, summary_scot))
+# most (if not all) changes should be focused around the last handful of 
+# data rows; look at comparisons in "Table: Differences detected"
+# Generally, numbers should increase from values.x to values.y
 
 
-write_csv(hist_scot, paste0(wd_path, "/temp/Scotland_historic.csv"))
-write_csv(summary_scot, paste0(wd_path, "/temp/Scotland_summary.csv"))
+## Write out to checks folder
+# Run manual checks in .csv files if needed.
+write_csv(hist_scot, paste0(wd_path, "/checks/Scotland_historic_", year, month, ".csv"))
+write_csv(summary_scot, paste0(wd_path, "/checks/Scotland_summary_", year, month, ".csv"))
