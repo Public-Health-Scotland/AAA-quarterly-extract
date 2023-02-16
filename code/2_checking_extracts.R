@@ -203,14 +203,6 @@ table(very_large$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
 
 
-## Then recode to "large"
-# q1 <- quarter %>%
-#   mutate(aaa_size_group = recode(aaa_size_group,
-#                                  "very large error" = "large"))
-## Should this be removed? Would be better to keep both & change filter to 
-## include both where processed in scripts?
-
-
 #### 4a. Combine checks -- summaries ####
 # Not sure what to do with this for now. Can be compared to previous run's
 # output (create an archive file?) to see changes??
@@ -329,6 +321,8 @@ saveRDS(summary, paste0(wd_path, "/checks/aaa_checks_summary_",
 saveRDS(summary_checks, paste0(wd_path, "/checks/aaa_checks_finyear_", 
                                year, month, ".rds"))
 
+rm(summary_hb, summary_checks, quarter_checks)
+
 
 #### 6. Compare ####
 ## Bring in records from previous extract run to do comparison of numbers
@@ -399,7 +393,7 @@ table(summary_scot$fy_quarter)
 ## Compare historic v current
 summary(comparedf(hist_scot, summary_scot))
 # most (if not all) changes should be focused around the last handful of 
-# data rows; look at comparisons in "Table: Differences detected"
+# data rows; look at comparisons in "Table: Differences detected..."
 # Generally, numbers should increase from values.x to values.y
 
 
