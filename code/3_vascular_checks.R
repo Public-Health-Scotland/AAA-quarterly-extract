@@ -58,9 +58,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   # select cases with vascular referrals 
   filter(!is.na(date_referral_true),
          date_screen <= as.Date(date_cutoff)) %>%
-  # need to preserve NA values in result outcome for validation checks **WHY??**
-  mutate(result_outcome = if_else(is.na(result_outcome),
-                                  "99", result_outcome)) %>%
+  # # need to preserve NA values in result outcome for validation checks **WHY??**
+  # mutate(result_outcome = if_else(is.na(result_outcome),
+  #                                 "99", result_outcome)) %>%
   # id variable for matching validator checks
   mutate(id = row_number(), .before = financial_year) %>% 
   glimpse()
@@ -124,7 +124,7 @@ quarter_outcome <- quarter %>%
          days_surgery_death = date_death - date_surgery) %>% 
   glimpse()
 
-check_outcomes <- validator("result_outcome_na" = result_outcome == "99", # not sure why can't leave as NAs
+check_outcomes <- validator("result_outcome_na" = is.na(result_outcome),
                             "outcome_no_OP" = result_outcome %in% c("01","02","03","04","05") &
                               (!is.na(date_seen_outpatient) | !is.na(surg_method) |
                                  !is.na(date_surgery)),
@@ -150,8 +150,8 @@ review_outcomes <- confront(quarter_outcome, check_outcomes, key  ="id")
 summary(review_outcomes)
 
 ## Check: these will likely be ongoing cases with most recent financial year.
-no_outcome <- quarter[quarter$result_outcome == 99,]
-table(no_outcome$result_outcome, useNA = "ifany")
+no_outcome <- quarter[is.na(quarter$result_outcome),]
+table(no_outcome$result_outcome, useNA = "ifany") ## Is this correct? Seems a little obvious...
 
 rm(no_outcome, quarter_outcome)
 
