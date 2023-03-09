@@ -22,6 +22,7 @@ library(stringr)
 library(forcats)
 library(readr)
 library(phsmethods)
+library(lubridate)
 library(tidylog)
 
 
@@ -29,9 +30,9 @@ rm(list = ls())
 
 
 ## Values
-year <- 2022
-month <- "12"
-date_download <- "20221206"
+year <- 2023
+month <- "03"
+date_download <- "20230301"
 
 
 ## Pathways
@@ -47,9 +48,9 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 
 
 #### 2: Main extract ####
-## Import and rename ---
+### Import and rename ---
 # All columns should be character except date variables listed below.
-quarter <- read_csv(paste0(wd_path, "/raw_data/ISD ", date_download, ".CSV"), 
+quarter <- read_csv(paste0(wd_path, "/data/ISD_", date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
@@ -81,14 +82,16 @@ names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
                     "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
                     "referral_error_manage", "practice_code", "hb_surgery")
 
-## Reformat ---
+### Reformat ---
 table(quarter$hb_surgery) ## Where is D? Cumbria
 table(quarter$hbres) ## Where is E? Northumbria
 
 quarter %<>%
   select(-surname, -forename) %>% 
   rename(pc8 = postcode) %>% 
-  mutate(hb_screen = str_sub(location_code, -1),
+  # calculate age at screening
+  mutate(age_at_screening = age_calculate(dob, date_screen),
+         hb_screen = str_sub(location_code, -1),
          hb_screen = case_when(hb_screen=="A" ~ "Ayrshire & Arran",
                                hb_screen=="B" ~ "Borders",
                                hb_screen=="Y" ~ "Dumfries & Galloway",
@@ -158,12 +161,13 @@ table(quarter$hbres, useNA = "ifany")
 table(quarter$hb_screen, useNA = "ifany")
 
 
-## Add financial year and quarter ---
-# Check latest dates of date_screen for fct_relevel of financial_year
+### Add financial year and quarter ---
+# Check latest dates of date_screen for fct_relevel of financial_year & fy_surgery
 # (add new level below if needed)
+##!! Can create a function that does this?
 tail(table(quarter$date_screen))
 
-# Create financial year/quarter from screening date
+## Create financial year/quarter from screening date
 quarter %<>%
   mutate(financial_year = extract_fin_year(date_screen),
          financial_quarter = qtr(date_screen, format="short")) %>% 
@@ -185,8 +189,20 @@ quarter %<>%
   glimpse()
 
 
-## Match GP practice codes ---
-# First letter in practice_code variable string represents HB, 
+## Create financial year from surgery date (year of surgery)
+quarter %<>%
+  mutate(fy_surgery = extract_fin_year(date_surgery)) %>%
+  mutate(fy_surgery = fct_relevel(fy_surgery,
+                                           c("2012/13", "2013/14", "2014/15",
+                                             "2015/16", "2016/17", "2017/18",
+                                             "2018/19", "2019/20", "2020/21",
+                                             "2021/22", "2022/23"))) %>%
+  relocate(fy_surgery, .after=date_surgery) %>%
+  glimpse()
+
+
+### Match GP practice codes ---
+# First letter in practice_code variable string represents HB (usually), 
 # but easier to merge if removed
 quarter %<>%
   mutate(gp_prac = str_sub(practice_code, 2, 5),
@@ -208,7 +224,7 @@ gp_link <- read_sav(gp_path) %>%
 quarter <- left_join(quarter, gp_link, by="gp_prac")
 
 
-## Match SIMD ---
+### Match SIMD ---
 simd <- read_rds(simd_path) %>% 
   select(pc8, ca2019, 
          simd2020v2_sc_quintile, 
@@ -218,7 +234,7 @@ simd <- read_rds(simd_path) %>%
 quarter <- left_join(quarter, simd, by="pc8")
 
 
-## Create definitive screen results ---
+### Create definitive screen results ---
 # A measurement category is derived for definitive screen results i.e. positive,
 # negative, external postive or external negative results unless the follow up
 # recommendation is immediate recall ('05').
@@ -238,6 +254,83 @@ quarter %<>%
                                       aaa_size <= 10.5 ~ "large",
                                     aaa_size >= 10.6 ~ "very large error"))
 
+### Calculate eligibility period ---
+# Eligibility period is the financial year in which the person turned 66. 
+#!! Rewrite as a function so that new lines don't need added when later 
+#!! financial years become relevant.
+# Boards have differing start dates for eligiblity
+# aged65_onstartdate counts if a person was 65 when their specific board started screening
+# over65_onstartdate counts if a person was over 65 when their specific board started screening.
+# eligibility_period combines the above two variables into one.
+
+quarter %<>%
+  mutate(eligibility_period = case_when(
+    between(dob, dmy("01-04-1947"), dmy("31-03-1948")) ~ "Turned 66 in year 2013/14",
+    between(dob, dmy("01-04-1948"), dmy("31-03-1949")) ~ "Turned 66 in year 2014/15",
+    between(dob, dmy("01-04-1949"), dmy("31-03-1950")) ~ "Turned 66 in year 2015/16",
+    between(dob, dmy("01-04-1950"), dmy("31-03-1951")) ~ "Turned 66 in year 2016/17",
+    between(dob, dmy("01-04-1951"), dmy("31-03-1952")) ~ "Turned 66 in year 2017/18",
+    between(dob, dmy("01-04-1952"), dmy("31-03-1953")) ~ "Turned 66 in year 2018/19",
+    between(dob, dmy("01-04-1953"), dmy("31-03-1954")) ~ "Turned 66 in year 2019/20",
+    between(dob, dmy("01-04-1954"), dmy("31-03-1955")) ~ "Turned 66 in year 2020/21",
+    between(dob, dmy("01-04-1955"), dmy("31-03-1956")) ~ "Turned 66 in year 2021/22",
+    between(dob, dmy("01-04-1956"), dmy("31-03-1957")) ~ "Turned 66 in year 2022/23",
+    between(dob, dmy("01-04-1957"), dmy("31-03-1958")) ~ "Turned 66 in year 2023/24"
+  ),
+  age65_onstartdate = case_when(
+    hbres == "Ayrshire & Arran" &
+      between(dob, dmy("01-06-1947"), dmy("31-05-1948")) ~ 1,
+    hbres == "Borders" &
+      between(dob, dmy("09-08-1946"), dmy("08-08-1947")) ~ 1,
+    hbres == "Dumfries & Galloway" &
+      between(dob, dmy("24-07-1947"), dmy("23-07-1948")) ~ 1,
+    hbres == "Fife" &
+      between(dob, dmy("09-01-1947"), dmy("08-01-1948")) ~ 1,
+    hbres == "Forth Valley" &
+      between(dob, dmy("18-09-1947"), dmy("17-09-1948")) ~ 1,
+    hbres == "Grampian" &
+      between(dob, dmy("03-10-1946"), dmy("02-10-1947")) ~ 1,
+    hbres == "Greater Glasgow & Clyde" &
+      between(dob, dmy("06-02-1947"), dmy("05-02-1948")) ~ 1,
+    hbres == "Highland" &
+      between(dob, dmy("29-06-1946"), dmy("28-06-1947")) ~ 1,
+    hbres == "Lanarkshire" &
+      between(dob, dmy("01-04-1947"), dmy("31-03-1948")) ~ 1,
+    hbres == "Lothian" &
+      between(dob, dmy("09-08-1946"), dmy("08-08-1947")) ~ 1,
+    hbres == "Orkney" &
+      between(dob, dmy("03-10-1946"), dmy("02-10-1947")) ~ 1,
+    hbres == "Shetland" &
+      between(dob, dmy("03-10-1946"), dmy("02-10-1947")) ~ 1,
+    hbres == "Tayside" &
+      between(dob, dmy("09-01-1947"), dmy("08-01-1948")) ~ 1,
+    hbres == "Western Isles" &
+      between(dob, dmy("29-06-1946"), dmy("28-06-1947")) ~ 1,
+    TRUE ~ 0
+  ),
+  over65_onstartdate = case_when(
+    hbres == "Ayrshire & Arran" & dob < dmy("01-06-1947") ~ 1,
+    hbres == "Borders" & dob < dmy("09-08-1946") ~ 1,
+    hbres == "Dumfries & Galloway" & dob < dmy("24-07-1947") ~ 1,
+    hbres == "Fife" & dob < dmy("09-01-1947") ~ 1,
+    hbres == "Forth Valley" & dob < dmy("18-09-1947") ~ 1,
+    hbres == "Grampian" & dob < dmy("03-10-1946") ~ 1,
+    hbres == "Greater Glasgow & Clyde" & dob < dmy("06-02-1947") ~ 1,
+    hbres == "Highland" & dob < dmy("29-06-1946") ~ 1,
+    hbres == "Lanarkshire" & dob < dmy("01-04-1947") ~ 1,
+    hbres == "Lothian" & dob < dmy("09-08-1946") ~ 1,
+    hbres == "Orkney" & dob < dmy("03-10-1946") ~ 1,
+    hbres == "Shetland" & dob < dmy("03-10-1946") ~ 1,
+    hbres == "Tayside" & dob < dmy("09-01-1947") ~ 1,
+    hbres == "Western Isles" & dob < dmy("29-06-1946") ~ 1,
+    TRUE ~ 0
+  ),
+  dob_eligibility = case_when(
+    over65_onstartdate == 1 ~ "Over eligible age cohort: age 66+ on start date",
+    age65_onstartdate == 1 ~ "Older cohort: age 65 on start date",
+    !is.na(eligibility_period) & age65_onstartdate == 0 ~ eligibility_period
+  ))
+
 
 ## Any other variables to be created, insert here ---
 
@@ -252,16 +345,17 @@ quarter %<>%
   rename(postcode = pc8) %>% 
   mutate(hbres = recode(hbres, "Northumbria" = "Borders")) %>%  # Why not done above?
   select(financial_year:fy_quarter, chi:dob, sex, postcode,
-         practice_code, practice_name, pat_elig,
-         hbres, ca2019, hb_screen,
+         practice_code, practice_name, pat_elig, hbres, 
+         eligibility_period, age65_onstartdate, over65_onstartdate,
+         dob_eligibility, ca2019, hb_screen,
          simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,
-         location_code, screen_type, date_offer_sent, date_screen,
+         location_code, screen_type, date_offer_sent, date_screen, age_at_screening,
          att_dna, screen_result, screen_exep, followup_recom,
          apl_measure, apt_measure, largest_measure, aaa_size, aaa_size_group,
          date_result, result_verified, date_verified,
          date_referral, date_referral_true, date_seen_outpatient,
          result_outcome, first_outcome, referral_error_manage,
-         date_surgery, hb_surgery, surg_method, date_death,
+         date_surgery, fy_surgery, hb_surgery, surg_method, date_death,
          aneurysm_related, audit_flag, audit_result, audit_fail_reason,
          audit_fail_1, audit_fail_2, audit_fail_3, audit_fail_4, audit_fail_5,
          audit_outcome, audit_batch_fail, audit_batch_outcome) %>% 
@@ -273,7 +367,7 @@ saveRDS(quarter, paste0(wd_path,
 
 #### 3: Exclusions extract ####
 ## Import and process ---
-exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions ", 
+exclude <- read_csv(paste0(wd_path, "/data/ISD-Exclusions_", 
                            date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
