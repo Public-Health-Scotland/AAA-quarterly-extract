@@ -30,9 +30,9 @@ rm(list = ls())
 
 
 ## Values
-year <- 2022
-month <- "12"
-date_download <- "20221206"
+year <- 2023
+month <- "03"
+date_download <- "20230301"
 
 
 ## Pathways
@@ -50,7 +50,7 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 #### 2: Main extract ####
 ### Import and rename ---
 # All columns should be character except date variables listed below.
-quarter <- read_csv(paste0(wd_path, "/raw_data/ISD ", date_download, ".CSV"), 
+quarter <- read_csv(paste0(wd_path, "/data/ISD_", date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
@@ -196,7 +196,7 @@ quarter %<>%
                                            c("2012/13", "2013/14", "2014/15",
                                              "2015/16", "2016/17", "2017/18",
                                              "2018/19", "2019/20", "2020/21",
-                                             "2021/22"))) %>%
+                                             "2021/22", "2022/23"))) %>%
   relocate(fy_surgery, .after=date_surgery) %>%
   glimpse()
 
@@ -256,7 +256,8 @@ quarter %<>%
 
 ### Calculate eligibility period ---
 # Eligibility period is the financial year in which the person turned 66. 
-#!! Rewrite as a function so that new lines don't need added when later financial years become relevant.
+#!! Rewrite as a function so that new lines don't need added when later 
+#!! financial years become relevant.
 # Boards have differing start dates for eligiblity
 # aged65_onstartdate counts if a person was 65 when their specific board started screening
 # over65_onstartdate counts if a person was over 65 when their specific board started screening.
@@ -366,7 +367,7 @@ saveRDS(quarter, paste0(wd_path,
 
 #### 3: Exclusions extract ####
 ## Import and process ---
-exclude <- read_csv(paste0(wd_path, "/raw_data/ISD-Exclusions ", 
+exclude <- read_csv(paste0(wd_path, "/data/ISD-Exclusions_", 
                            date_download, ".CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",

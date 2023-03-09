@@ -37,15 +37,15 @@ rm(list = ls())
 
 
 ## Values
-year <- 2022
-month <- "12"
-previous <- 202209
+year <- 2023
+month <- "03"
+previous <- 202212
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2022/23_4"
+fyq_current <- "2023/24_1"
 
 
 ## Pathways
@@ -63,7 +63,8 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
   
 length(unique(quarter$upi))
-# 375,084 of 536613 records
+# 202212: 375,084 of 536,613 records
+# 202303: 384,113 of 550,306 records
 
 
 #### 3. Validate data ####
@@ -106,7 +107,8 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 2022/23_4         379  # appointments have been set up but not happened
+# 2022/23_4       14822  # appointments have been set up but not happened
+# 2023/24_1         169
 # 2023/24_3           1
 # 2025/26_2           1
 # 2056/57_2           1
@@ -127,12 +129,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2021/22_2        8170
-# 2 2021/22_3        8562
-# 3 2021/22_4        8046
-# 4 2022/23_1        9087
-# 5 2022/23_2        8923
-# 6 2022/23_3        7433
+# 1 2021/22_3        8562
+# 2 2021/22_4        8046
+# 3 2022/23_1        9087
+# 4 2022/23_2        8923
+# 5 2022/23_3        9392
+# 6 2022/23_4        6743
 
 rm(annual, temp)
 ####
@@ -356,20 +358,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2022/23_4", screening_n=0, patient_n=0,
-          attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
-          date_screen_before_offer_n=0, date_result_before_screen_n=0,
-          date_verified_before_result_n=0, date_referral_before_verified_n=0,
-          date_seenOP_before_refTrue_n=0, date_death_before_surgery_n=0,
-          not_recorded_result_n=0, not_recorded_followup_n=0,
-          no_result_followup_n=0, invalid_measure1_n=0, invalid_measure2_n=0, 
-          audits_n=0,audit_fail_n=0,not_recorded_fail_reason_n=0,
-          not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
-          # to calculate placement index, identify row index of the same fy_quarter
-          # in summary_scot table and change number below to match
-          .before = 44) %>% 
-  # only need to use below in case of data entry error!
-  add_row(hbres="Scotland", fy_quarter="2023/24_3", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2023/24_1", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -381,6 +370,19 @@ hist_scot %<>%
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
           .before = 45) %>% 
+  # # only need to use below in case of data entry error!
+  # add_row(hbres="Scotland", fy_quarter="2023/24_3", screening_n=0, patient_n=0,
+  #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
+  #         date_screen_before_offer_n=0, date_result_before_screen_n=0,
+  #         date_verified_before_result_n=0, date_referral_before_verified_n=0,
+  #         date_seenOP_before_refTrue_n=0, date_death_before_surgery_n=0,
+  #         not_recorded_result_n=0, not_recorded_followup_n=0,
+  #         no_result_followup_n=0, invalid_measure1_n=0, invalid_measure2_n=0, 
+  #         audits_n=0,audit_fail_n=0,not_recorded_fail_reason_n=0,
+  #         not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
+  #         # to calculate placement index, identify row index of the same fy_quarter
+  #         # in summary_scot table and change number below to match
+  #         .before = 46) %>% 
   # above converts as.integer to numeric; needs to be converted back
   mutate(across(3:24, as.integer))
 

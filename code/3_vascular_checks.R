@@ -41,11 +41,11 @@ rm(list = ls())
 
 
 ## Values
-year <- 2022
-month <- "12"
-date_extract <- "2022-12-06"
+year <- 2023
+month <- "03"
+date_extract <- "2023-03-01"
 # Cutoff should be day extract prepared... should it be last day of previous month??
-date_cutoff <- "2022-12-01" 
+date_cutoff <- "2023-03-01" 
 today <- paste0("Workbook created ", Sys.Date())
 
 
@@ -66,9 +66,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2022-12-01"
+# "2012-08-13" "2023-02-23"
 range(quarter$date_referral_true)
-# "2012-08-15" "2022-12-02"
+# "2012-08-15" "2023-02-25"
 
 
 #### 3. Validate data ####
