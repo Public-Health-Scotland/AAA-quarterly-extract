@@ -17,14 +17,14 @@
 ## go? Is it reasonable to make graphical outputs for people running script to
 ## interpret the data?
 ## Do we need to create an Excel file?
-## Conversly, if we find issues in the data, would it be worth creating outputs 
+## Conversely, if we find issues in the data, would it be worth creating outputs 
 ## to send to the HBs to review errors/questions? Or maybe that is for the 
 ## pre-September audit??
 
 
 ## Notes from SPSS: 
 ## August 2022: going forward these checks need updated to include the board of surgery. field
-## Boards added restropective data for board of surgery during summer 2022.
+## Boards added retrospective data for board of surgery during summer 2022.
 
 
 #### 1: Housekeeping ####

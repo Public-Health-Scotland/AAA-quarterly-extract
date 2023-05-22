@@ -7,10 +7,12 @@
 # Imports and formats BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
 # Outputs are checked in further scripts;
-# March and September outputs used for MEG reports
+# March and September outputs used for MEG KPI reports
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
+# Revised/run on Posit WB
+# R version 4.1.2
 ##########################################################
 
 #### 1: Housekeeping ####
@@ -27,6 +29,7 @@ library(tidylog)
 
 
 rm(list = ls())
+gc()
 
 
 ## Values
@@ -40,8 +43,7 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
 
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
-                  "/gpprac.sav")
-##!! KH: I don't see an RDS (or CSV) version of this file... Where to get?
+                  "/gpprac.sav") #Currently, only available as .sav
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
                     "/postcode_2022_2_simd2020v2.rds")
@@ -381,29 +383,26 @@ exclude <- read_csv(paste0(wd_path, "/data/ISD-Exclusions_",
 names(exclude) <- c("chi", "upi", "dob", "pat_inelig",
                     "date_start", "date_end", "pat_elig_rec")
 
-# ## Add financial year and quarter ---
-# # Create financial year/quarter from starting date
-# exclude %<>%
-#   mutate(financial_year = extract_fin_year(date_start),
-#          financial_quarter = qtr(date_start, format="short")) %>% 
-#   # financial_quarter should be represented by a number
-#   mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
-#          financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
-#                                        financial_quarter == "Apr" ~ 1,
-#                                        financial_quarter == "Jul" ~ 2,
-#                                        financial_quarter == "Oct" ~ 3),
-#          fy_quarter = paste0(financial_year, " ", financial_quarter)) %>% 
-#   mutate(fy_quarter = if_else(fy_quarter == "NA NA", "", fy_quarter)) %>%  
-#   select(financial_year:fy_quarter, 
-#          chi:pat_elig_rec) %>% 
-#   arrange(upi, fy_quarter) %>% 
-#   glimpse()
-#   
-#   CHECK IF THIS IS ACCURATE: IS date_start COMPARABLE TO date_screen???
-
+## Add financial year and quarter ---
+exclude %<>%
+  mutate(financial_year = extract_fin_year(as.Date(date_start)),
+         month = format(as.Date(date_start, format = "%Y-%m-%d"),"%m"),
+         financial_quarter = case_when(month %in% c('04','05','06') ~ 1,
+                                       month %in% c('07','08','09') ~ 2,
+                                       month %in% c('10','11','12') ~ 3,
+                                       month %in% c('01','02','03') ~ 4),
+         fin_month = case_when(month %in% c('04','05','06','07','08','09',
+                                            '10','11','12') ~ as.numeric(month)-3,
+                               month == '03' ~ 12,
+                               month == '02' ~ 11,
+                               month == '01' ~ 10)) %>%
+  select(-month) %>% 
+  select(financial_year:fin_month,
+         chi:pat_elig_rec) %>%
+  arrange(upi, financial_year, financial_quarter) %>%
+  glimpse()
 
 ## Write out ---
 saveRDS(exclude, paste0(wd_path, 
                         "/output/aaa_exclusions_", year, month, ".rds"))
-
 
