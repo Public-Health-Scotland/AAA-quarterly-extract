@@ -1,6 +1,16 @@
-##############################
-### Scratchpad ###
-##############################
+##########################################################
+# x_recreate_202206.R
+# Karen Hotopp
+# Oct 2022
+# 
+# 
+# Archival script used to recreate the June 2022 outputs.
+# 
+# Written/run on R Studio Server
+# R version 3.6.1
+# Revised/run on Posit WB
+# R version 4.1.2
+##########################################################
 
 #### Previous extract ####
 ## Create pathways in this script and then
@@ -21,7 +31,6 @@ old_path <-paste0("/PHI_conf/AAA/Portfolio/Data/RoutineExtracts",
 
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
                   "/gpprac.sav")
-##!! KH: I don't see an RDS (or CSV) version of this file... Where to get?
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
                     "/postcode_2022_2_simd2020v2.rds")
