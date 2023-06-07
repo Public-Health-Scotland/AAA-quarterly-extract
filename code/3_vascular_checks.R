@@ -33,19 +33,21 @@ library(dplyr)
 library(stringr)
 library(readr)
 library(validate)
+library(magrittr)
 library(openxlsx)
 library(tidylog)
 
 
 rm(list = ls())
+gc()
 
 
 ## Values
 year <- 2023
-month <- "03"
-date_extract <- "2023-03-01"
+month <- "06"
+date_extract <- "2023-06-01"
 # Cutoff should be day extract prepared... should it be last day of previous month??
-date_cutoff <- "2023-03-01" 
+date_cutoff <- "2023-06-01" 
 today <- paste0("Workbook created ", Sys.Date())
 
 
@@ -66,9 +68,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2023-02-23"
+# "2012-08-13" "2023-05-30"
 range(quarter$date_referral_true)
-# "2012-08-15" "2023-02-25"
+# "2012-08-15" "2023-05-31"
 
 
 #### 3. Validate data ####
@@ -108,10 +110,19 @@ check_dates <- validator("date_screen_extract" = date_screen > date_extract,
 review_dates <- confront(quarter_date, check_dates, key  ="id")
 summary(review_dates)
 
-## Check: these will likely be ongoing cases with most recent financial year;
-# can also check result_outcome, as likely cases that are ongoing.
+## Check date_seenOP_na: these will likely be ongoing cases with most recent 
+# financial year; can also check result_outcome, as likely cases that are ongoing.
 no_OPdate <- quarter_date[is.na(quarter_date$date_seen_outpatient),]
+table(no_OPdate$fy_quarter)
 table(no_OPdate$result_outcome, useNA = "ifany")
+# 03: DNA outpatient service: Self-discharge
+# 18: Ongoing assessment by vascular
+# 20: Other final outcome
+table(no_OPdate$result_outcome, no_OPdate$fy_quarter)
+#    2021/22_3 2022/23_2 2022/23_4
+# 03         1         0         0
+# 18         0         1         1
+# 20         0         0         1
 
 rm(no_OPdate, quarter_date)
 
@@ -149,27 +160,140 @@ check_outcomes <- validator("result_outcome_na" = is.na(result_outcome),
 review_outcomes <- confront(quarter_outcome, check_outcomes, key  ="id")
 summary(review_outcomes)
 
-## Check: these will likely be ongoing cases with most recent financial year.
+## Check result_outcome_na: these will likely be ongoing cases with most 
+# recent financial year.
 no_outcome <- quarter[is.na(quarter$result_outcome),]
-table(no_outcome$result_outcome, useNA = "ifany") ## Is this correct? Seems a little obvious...
+table(no_outcome$fy_quarter, useNA = "ifany")
 
-rm(no_outcome, quarter_outcome)
+## Check outcome_no_OP: these will likely be ongoing cases with most 
+# recent financial year.
+outcome_no_OP <- quarter[quarter$result_outcome %in% c("01","02","03","04","05") &
+                           (!is.na(quarter$date_seen_outpatient) | 
+                              !is.na(quarter$surg_method) |
+                              !is.na(quarter$date_surgery)),]
+table(outcome_no_OP$fy_quarter, useNA = "ifany")
+# 2016/17_2 2022/23_1 ##!!Why are 2 coming up here when only 1 came up in validation check??
+# 1         1         ##!!And why 2016/17??
+
+## Check outcome_no_final: these will likely be ongoing cases with most 
+# recent financial year.
+outcome_no_final <- quarter[quarter$result_outcome %in% 
+                              c("09","10","14","17","18","19"),]
+table(outcome_no_final$fy_quarter, useNA = "ifany")
+table(outcome_no_final$result_outcome, useNA = "ifany")
+# 09: Refer to another specialty
+# 10: Awaiting further AAA growth
+# 14: Appropriate for surgery: Patient deferred surgery
+# 17: Appropriate for surgery: Final outcome pending
+# 18: Ongoing assessment by vascular
+# 19: Final outcome pending
+table(outcome_no_final$result_outcome, outcome_no_final$fy_quarter)
+#    2020/21_2 2020/21_4 2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2022/23_4 2023/24_1
+# 09         0         0         0         0         1         0         2         0         1         0
+# 10         1         1         1         2         1         0         1         2         0         0
+# 14         0         0         0         0         0         0         1         0         0         0
+# 17         0         0         1         0         2         0         1         0         1         1
+# 18         0         0         2         1         2         6         4         4         5         7
+# 19         0         1         0         0         0         0         0         0         0         0
+
+rm(no_outcome, outcome_no_OP, outcome_no_final, quarter_outcome)
 
 
-#### 4. Create data subsets ####
+### 4. Update variables ####
+# Update the coded variables to descriptive
+quarter %<>% 
+  mutate(screen_type = case_when(screen_type=="01" ~ "Initial screen",
+                                 screen_type=="02" ~ "Surveillance",
+                                 screen_type=="03" ~ "QA initial screen",
+                                 screen_type=="04" ~ "QA surveillance"),
+         screen_result = case_when(
+           screen_result=="01" ~ "Positive (AAA >= 3.0cm)",
+           screen_result=="02" ~ "Negative (AAA < 3.0cm)",
+           screen_result=="03" ~ "Technical failure",
+           screen_result=="04" ~ "Non-visualization, longitudinal/transverse plane",
+           screen_result=="05" ~ "External positive (AAA >= 3.0cm)",
+           screen_result=="06" ~ "External negative (AAA < 3.0cm)"),
+         followup_recom = case_when(
+           followup_recom=="01" ~ "3 months",
+           followup_recom=="02" ~ "12 months",
+           followup_recom=="03" ~ "Discharge",
+           followup_recom=="04" ~ "Refer to vascular",
+           followup_recom=="05" ~ "Immediate recall",
+           followup_recom=="06" ~ "No further recall"),
+         referral_error_manage = case_when(
+           referral_error_manage=="01" ~ "Discharged",
+           referral_error_manage=="02" ~ "Surveillance 3 months",
+           referral_error_manage=="03" ~ "Surveillance 12 months"),
+         hb_surgery = case_when(hb_surgery=="A" ~ "Ayrshire & Arran",
+                                hb_surgery=="B" ~ "Borders",
+                                hb_surgery=="F" ~ "Fife",
+                                hb_surgery=="G" ~ "Greater Glasgow & Clyde",
+                                hb_surgery=="H" ~ "Highland",
+                                hb_surgery=="L" ~ "Lanarkshire",
+                                hb_surgery=="N" ~ "Grampian",
+                                hb_surgery=="R" ~ "Orkney",
+                                hb_surgery=="S" ~ "Lothian",
+                                hb_surgery=="T" ~ "Tayside",
+                                hb_surgery=="V" ~ "Forth Valley",
+                                hb_surgery=="W" ~ "Western Isles",
+                                hb_surgery=="Y" ~ "Dumfries & Galloway",
+                                hb_surgery=="Z" ~ "Shetland",
+                                hb_surgery=="D" ~ "Cumbria"),
+         surg_method = case_when(
+           surg_method=="01" ~ "Endovascular surgery",
+           surg_method=="02" ~ "Open surgery",
+           surg_method=="03" ~ "Proceedure abandoned"),
+         # add a new variable that uses descriptions, so can still use numerical
+         # result_outcome to filter below
+         result_outcome_descriptor = case_when(
+           result_outcome=="01" ~ "Declined vascular referral",
+           result_outcome=="02" ~ "Referred in error: Vascular appointment not required",
+           result_outcome=="03" ~ "DNA outpatien service: Self-discharge",
+           result_outcome=="04" ~ "DNA outpatien service: Died w/in 10 working days of referral",
+           result_outcome=="05" ~ "DNA outpatien service: Died more than 10 working days of referral",
+           result_outcome=="06" ~ "Referred in error: As determined by vascular services",
+           result_outcome=="07" ~ "Died before surgical assessment completed",
+           result_outcome=="08" ~ "Unfit for surgery",
+           result_outcome=="09" ~ "Refer to another specialty",
+           result_outcome=="10" ~ "Awaiting further AAA growth",
+           result_outcome=="11" ~ "Appropriate for surgery: Patient declined surgery",
+           result_outcome=="12" ~ "Appropriate for surgery: Died before treatment",
+           result_outcome=="13" ~ "Appropriate for surgery: Self-discharge",
+           result_outcome=="14" ~ "Appropriate for surgery: Patient deferred surgery",
+           result_outcome=="15" ~ "Appropriate for surgery: AAA repaired and survived 30 days",
+           result_outcome=="16" ~ "Appropriate for surgery: Died w/in 30 days of treatment",
+           result_outcome=="17" ~ "Appropriate for surgery: Final outcome pending",
+           result_outcome=="18" ~ "Ongoing assessment by vascular",
+           result_outcome=="19" ~ "Final outcome pending",
+           result_outcome=="20" ~ "Other final outcome"))
+
+
+#### 5. Create data subsets ####
 
 ### Vascular appointment not needed ---
 ## Records list
 appt_notreq <- quarter %>%
   filter(largest_measure < 5.5 |
            result_outcome == "02") %>% 
+  mutate(result_outcome = result_outcome_descriptor) |> 
   select(financial_year, fy_quarter, upi, hbres,
          date_screen, screen_type, largest_measure,
          screen_result, followup_recom, 
          date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, referral_error_manage,
-         surg_method, date_surgery, date_death, aneurysm_related) %>% 
+         result_outcome, referral_error_manage, date_surgery, 
+         hb_surgery, surg_method) %>% 
   arrange(hbres, fy_quarter)
+
+table(appt_notreq$largest_measure, appt_notreq$result_outcome)
+# 02 Referred in error: Appointment with vascular service not required
+# 06 Referred in error: As determined by vascular service
+# 15 Appropriate for Surgery: AAA repaired and survived 30 days
+# 20 Other final outcome
+table(appt_notreq$referral_error_manage)
+## Key for referral_error_manage:
+# 01 Discharged
+# 02 Surveillance 3 months
+# 03 Surveillance 12 months
 
 ## HBs
 appt_notreq_hb <- appt_notreq %>% 
@@ -193,12 +317,11 @@ appt_notreq_year <- appt_notreq %>%
 ## Records list
 nonfinal <- quarter %>%
   filter(result_outcome %in% c("09","10","14","17","18","19")) %>% 
+  mutate(result_outcome = result_outcome_descriptor) |> 
   select(financial_year, fy_quarter, upi, hbres,
          date_screen, screen_type, largest_measure,
-         screen_result, followup_recom, 
-         date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, referral_error_manage,
-         surg_method, date_surgery, date_death, aneurysm_related) %>%
+         screen_result, followup_recom, date_referral, 
+         date_referral_true, date_seen_outpatient, result_outcome) %>%
   arrange(hbres, fy_quarter)
 
 ## HBs
@@ -223,12 +346,13 @@ nonfinal_year <- nonfinal %>%
 ## Records list
 otherfinal <- quarter %>%
   filter(result_outcome == "20") %>% 
+  mutate(result_outcome = result_outcome_descriptor) |> 
   select(financial_year, fy_quarter, upi, hbres,
          date_screen, screen_type, largest_measure,
          screen_result, followup_recom, 
          date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, referral_error_manage,
-         surg_method, date_surgery, date_death, aneurysm_related) %>%
+         result_outcome, date_surgery, hb_surgery, surg_method,  
+         date_death, aneurysm_related) %>%
   arrange(hbres, fy_quarter)
 
 ## HBs
@@ -248,13 +372,6 @@ otherfinal_year <- otherfinal %>%
               names_sort =TRUE) %>% 
   replace(is.na(.), 0)
 
-table(appt_notreq$largest_measure, appt_notreq$result_outcome)
-table(appt_notreq$referral_error_manage)
-## Key for referral_error_manage:
-# 01 Discharged
-# 02 Surveillance 3 months
-# 03 Surveillance 12 months
-
 
 ### Outcomes for patients who died ---
 ## Records list
@@ -264,8 +381,8 @@ mort <- quarter %>%
          date_screen, screen_type, largest_measure,
          screen_result, followup_recom, 
          date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, surg_method, 
-         date_surgery, date_death, aneurysm_related) %>% 
+         result_outcome, date_surgery, hb_surgery, surg_method,  
+         date_death, aneurysm_related) %>% 
   arrange(hbres, fy_quarter)
 
 ## HBs
@@ -286,7 +403,7 @@ mort_year <- mort %>%
   replace(is.na(.), 0)
 
 
-#### 5. Write to Excel ####
+#### 6. Write to Excel ####
 ## Will need to have conversation with Garrick et al. about how this is sent
 ## out and how often (annually v with each quarter??).
 ## Then, will be able to decide final format of printing out to Excel:
@@ -295,19 +412,23 @@ mort_year <- mort %>%
 
 ### Setup workbook ---
 ## Reset variable names
-records_var <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+records_appt <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
                  "Date Screened", "Screening Type", "Largest Measurement",
                  "Screening Result", "Follow-up Recommendation", "Date of Referral",
                  "Actual Date of Referral", "Date Seen in Outpatient", 
-                 "Result Outcome", "First Outcome", "Referral Error Management", 
-                 "Surgery Method", "Date of Surgery", "Date of Death", 
-                 "Aneurysm Related Death")
+                 "Result Outcome", "Referral Error Management", "Date of Surgery", 
+                 "HB of surgery", "Surgery Method")
+records_nonfinal <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+                      "Date Screened", "Screening Type", "Largest Measurement",
+                      "Screening Result", "Follow-up Recommendation", "Date of Referral",
+                      "Actual Date of Referral", "Date Seen in Outpatient", 
+                      "Result Outcome")
 records_mort <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
                   "Date Screened", "Screening Type", "Largest Measurement",
                   "Screening Result", "Follow-up Recommendation", "Date of Referral",
                   "Actual Date of Referral", "Date Seen in Outpatient", 
-                  "Result Outcome", "First Outcome", "Surgery Method", 
-                  "Date of Surgery", "Date of Death", "Aneurysm Related Death")
+                  "Result Outcome", "Date of Surgery", "HB of surgery", 
+                  "Surgery Method", "Date of Death", "Aneurysm-Related Death")
 
 ## Styles
 title_style <- createStyle(fontSize = 12, halign = "Left", textDecoration = "bold")
@@ -316,7 +437,6 @@ table_style <- createStyle(valign = "Bottom", halign = "Left",
 
 ## Titles
 title_date <- paste0(month.name[as.numeric(month)], " ", year)
-
 ## Setup workbook
 wb <- createWorkbook()
 options("openxlsx.borderStyle" = "thin")
@@ -324,6 +444,7 @@ modifyBaseFont(wb, fontSize = 11, fontName = "Arial")
 
 
 ### Vascular appointment not needed ---
+names(appt_notreq) <- records_appt
 addWorksheet(wb, sheetName = "Appointment not needed", gridLines = FALSE)
 writeData(wb, sheet = "Appointment not needed", appt_notreq_hb, startRow = 5)
 writeData(wb, sheet = "Appointment not needed", appt_notreq_year, startRow = 9)
@@ -337,7 +458,6 @@ writeData(wb, "Appointment not needed", today, startRow = 3, startCol = 1)
 addStyle(wb, "Appointment not needed", title_style, rows = 1:2, cols = 1)
 
 # table headers
-names(appt_notreq) <- records_var
 addStyle(wb, "Appointment not needed", title_style, rows = 5, cols = 1:ncol(appt_notreq_hb))
 addStyle(wb, "Appointment not needed", title_style, rows = 9, cols = 1:ncol(appt_notreq_year))
 addStyle(wb, "Appointment not needed", title_style, rows = 25, cols = 1:ncol(appt_notreq))
@@ -353,6 +473,7 @@ setColWidths(wb, "Appointment not needed", cols = 1:ncol(appt_notreq),
 
 
 ### Non-final outcomes ----
+names(nonfinal) <- records_nonfinal
 addWorksheet(wb, sheetName = "Non-final Outcomes", gridLines = FALSE)
 writeData(wb, sheet = "Non-final Outcomes", nonfinal_hb, startRow = 5)
 writeData(wb, sheet = "Non-final Outcomes", nonfinal_year, startRow = 9)
@@ -366,7 +487,6 @@ writeData(wb, "Non-final Outcomes", today, startRow = 3, startCol = 1)
 addStyle(wb, "Non-final Outcomes", title_style, rows = 1:2, cols = 1)
 
 # table headers
-names(nonfinal) <- records_var
 addStyle(wb, "Non-final Outcomes", title_style, rows = 5, cols = 1:ncol(nonfinal_hb))
 addStyle(wb, "Non-final Outcomes", title_style, rows = 9, cols = 1:ncol(nonfinal_year))
 addStyle(wb, "Non-final Outcomes", title_style, rows = 25, cols = 1:ncol(nonfinal))
@@ -382,6 +502,7 @@ setColWidths(wb, "Non-final Outcomes", cols = 1:ncol(nonfinal),
 
 
 ### Other final outcomes ----
+names(otherfinal) <- records_mort
 addWorksheet(wb, sheetName = "Other Final Outcomes", gridLines = FALSE)
 writeData(wb, sheet = "Other Final Outcomes", otherfinal_hb, startRow = 5)
 writeData(wb, sheet = "Other Final Outcomes", otherfinal_year, startRow = 9)
@@ -395,7 +516,6 @@ writeData(wb, "Other Final Outcomes", today, startRow = 3, startCol = 1)
 addStyle(wb, "Other Final Outcomes", title_style, rows = 1:2, cols = 1)
 
 # table headers
-names(otherfinal) <- records_var
 addStyle(wb, "Other Final Outcomes", title_style, rows = 5, cols = 1:ncol(otherfinal_hb))
 addStyle(wb, "Other Final Outcomes", title_style, rows = 9, cols = 1:ncol(otherfinal_year))
 addStyle(wb, "Other Final Outcomes", title_style, rows = 25, cols = 1:ncol(otherfinal))
@@ -411,6 +531,7 @@ setColWidths(wb, "Other Final Outcomes", cols = 1:ncol(otherfinal),
 
 
 ### Deaths ----
+names(mort) <- records_mort
 addWorksheet(wb, sheetName = "Deaths", gridLines = FALSE)
 writeData(wb, sheet = "Deaths", mort_hb, startRow = 5)
 writeData(wb, sheet = "Deaths", mort_year, startRow = 9)
@@ -424,7 +545,6 @@ writeData(wb, "Deaths", today, startRow = 3, startCol = 1)
 addStyle(wb, "Deaths", title_style, rows = 1:2, cols = 1)
 
 # table headers
-names(mort) <- records_mort
 addStyle(wb, "Deaths", title_style, rows = 5, cols = 1:ncol(mort_hb))
 addStyle(wb, "Deaths", title_style, rows = 9, cols = 1:ncol(mort_year))
 addStyle(wb, "Deaths", title_style, rows = 25, cols = 1:ncol(mort))
