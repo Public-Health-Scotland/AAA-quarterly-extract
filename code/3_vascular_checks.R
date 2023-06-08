@@ -202,9 +202,9 @@ rm(no_outcome, outcome_no_OP, outcome_no_final, quarter_outcome)
 ### 4. Update variables ####
 # Update the coded variables to descriptive
 quarter %<>% 
-  mutate(screen_type = case_when(screen_type=="01" ~ "Initial screen",
+  mutate(screen_type = case_when(screen_type=="01" ~ "Initial",
                                  screen_type=="02" ~ "Surveillance",
-                                 screen_type=="03" ~ "QA initial screen",
+                                 screen_type=="03" ~ "QA initial",
                                  screen_type=="04" ~ "QA surveillance"),
          screen_result = case_when(
            screen_result=="01" ~ "Positive (AAA >= 3.0cm)",
@@ -377,6 +377,7 @@ otherfinal_year <- otherfinal %>%
 ## Records list
 mort <- quarter %>%
   filter(result_outcome %in% c("04","05","07","12","16")) %>% 
+  mutate(result_outcome = result_outcome_descriptor) |> 
   select(financial_year, fy_quarter, upi, hbres,
          date_screen, screen_type, largest_measure,
          screen_result, followup_recom, 
@@ -439,7 +440,8 @@ table_style <- createStyle(valign = "Bottom", halign = "Left",
 title_date <- paste0(month.name[as.numeric(month)], " ", year)
 ## Setup workbook
 wb <- createWorkbook()
-options("openxlsx.borderStyle" = "thin")
+options("openxlsx.borderStyle" = "thin",
+        "openxlsx.dateFormat" = "dd/mm/yyyy")
 modifyBaseFont(wb, fontSize = 11, fontName = "Arial")
 
 
