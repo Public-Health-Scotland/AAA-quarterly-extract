@@ -34,18 +34,19 @@ library(tidylog)
 
 
 rm(list = ls())
+gc()
 
 
 ## Values
 year <- 2023
-month <- "03"
-previous <- 202212
+month <- "06"
+previous <- 202303
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2023/24_1"
+fyq_current <- "2023/24_2"
 
 
 ## Pathways
@@ -65,6 +66,7 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
 length(unique(quarter$upi))
 # 202212: 375,084 of 536,613 records
 # 202303: 384,113 of 550,306 records
+# 202306: 393,232 of 564,491 records
 
 
 #### 3. Validate data ####
@@ -100,6 +102,7 @@ summary(review_dates)
 
 ####
 ## Screenings by quarter
+# This checks records that "passed" the correct_FYQ validation
 annual <- quarter %>%
   mutate(count_screens = if_else(is.na(date_screen), 0, 1)) %>%
   group_by(fy_quarter) %>%
@@ -107,9 +110,9 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 2022/23_4       14822  # appointments have been set up but not happened
-# 2023/24_1         169
-# 2023/24_3           1
+# 2023/24_1       13831 # appointments have been set up but not happened
+# 2023/24_2         256
+# 2023/24_3          11
 # 2025/26_2           1
 # 2056/57_2           1
 # unrecorded          0
@@ -129,12 +132,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2021/22_3        8562
-# 2 2021/22_4        8046
-# 3 2022/23_1        9087
-# 4 2022/23_2        8923
-# 5 2022/23_3        9392
-# 6 2022/23_4        6743
+# 1 2021/22_4        8046
+# 2 2022/23_1        9087
+# 3 2022/23_2        8923
+# 4 2022/23_3        9392
+# 5 2022/23_4       10362
+# 6 2023/24_1        6112
 
 rm(annual, temp)
 ####
@@ -162,6 +165,8 @@ hb_norf <- quarter %>%
   arrange(hb_screen, fy_quarter)
 
 table(droplevels(hb_norf$hb_screen))
+# Grampian  Greater Glasgow & Clyde  Highland 
+# 4         7                        1 
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
 
@@ -358,7 +363,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2023/24_1", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2023/24_2", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -369,7 +374,7 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 45) %>% 
+          .before = 46) %>% 
   # # only need to use below in case of data entry error!
   # add_row(hbres="Scotland", fy_quarter="2023/24_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
@@ -399,8 +404,8 @@ summary(comparedf(hist_scot, summary_scot))
 # Generally, numbers should increase from values.x to values.y
 
 
-## Write out to checks folder
-# Is this needed??
-# Run manual checks in .csv files if needed.
-write_csv(hist_scot, paste0(wd_path, "/checks/Scotland_historic_", year, month, ".csv"))
-write_csv(summary_scot, paste0(wd_path, "/checks/Scotland_summary_", year, month, ".csv"))
+# ## Write out to checks folder
+# # Is this needed??
+# # Run manual checks in .csv files if needed.
+# write_csv(hist_scot, paste0(wd_path, "/checks/Scotland_historic_", year, month, ".csv"))
+# write_csv(summary_scot, paste0(wd_path, "/checks/Scotland_summary_", year, month, ".csv"))

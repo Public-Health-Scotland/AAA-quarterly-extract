@@ -34,8 +34,8 @@ gc()
 
 ## Values
 year <- 2023
-month <- "03"
-date_download <- "20230301"
+month <- "06"
+date_download <- "20230601"
 
 
 ## Pathways
@@ -43,7 +43,7 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
 
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
-                  "/gpprac.sav") #Currently, only available as .sav
+                  "/gpprac.csv") # Changed from .sav 2Jun23
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
                     "/postcode_2022_2_simd2020v2.rds")
@@ -192,13 +192,15 @@ quarter %<>%
 
 
 ## Create financial year from surgery date (year of surgery)
+tail(table(quarter$date_surgery))
+
 quarter %<>%
   mutate(fy_surgery = extract_fin_year(date_surgery)) %>%
   mutate(fy_surgery = fct_relevel(fy_surgery,
                                            c("2012/13", "2013/14", "2014/15",
                                              "2015/16", "2016/17", "2017/18",
                                              "2018/19", "2019/20", "2020/21",
-                                             "2021/22", "2022/23"))) %>%
+                                             "2021/22", "2022/23", "2023/24"))) %>%
   relocate(fy_surgery, .after=date_surgery) %>%
   glimpse()
 
@@ -211,16 +213,16 @@ quarter %<>%
          gp_prac = as.numeric(gp_prac)) %>% 
   glimpse()
 
-gp_link <- read_sav(gp_path) %>% 
-  mutate(gp_prac = str_sub(praccode, 1, 4),
+gp_link <- read_csv(gp_path) %>% 
+  mutate(gp_prac = str_sub(`Prac code`, 1, 4),
          gp_prac = as.numeric(gp_prac)) %>%
   # data now has two rows where gp_prac==9999; keep where add1=="unknown"
   # and remove add1/add2=="PATIENTS REGISTERED WITH A GP IN ENG WAL OR N IRE"
-  filter(praccode != 99995) %>% 
-  select(gp_prac, add1) %>% 
+  filter(`Prac code` != 99995) %>% 
+  select(gp_prac, `Add 1`) %>% 
   # use title case to clean practice names
-  mutate(add1 = str_to_title(add1)) %>% 
-  rename(practice_name = add1) %>% 
+  mutate(add1 = str_to_title(`Add 1`)) %>% 
+  rename(practice_name = `Add 1`) %>% 
   glimpse()
 
 quarter <- left_join(quarter, gp_link, by="gp_prac")
