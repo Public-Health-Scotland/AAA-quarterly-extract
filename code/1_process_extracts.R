@@ -33,26 +33,29 @@ gc()
 
 
 ## Values
-year <- 2023
-month <- "06"
-date_download <- "20230601"
+yymm <- "20200923"
+
+year <- 2020
+month <- "09"
+date_download <- "230920-"
 
 
 ## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
-                 "/", year, month)
+data_path <- paste0("/PHI_conf/AAA/Topics/Data/RoutineExtracts/", yymm) # extracts May2022 and older
+
+wd_path <- "/PHI_conf/AAA/Topics/Screening/extracts/historical" 
 
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
                   "/gpprac.csv") # Changed from .sav 2Jun23
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
-                    "/postcode_2022_2_simd2020v2.rds")
+                    "/postcode_2023_1_simd2020v2.rds")
 
 
 #### 2: Main extract ####
 ### Import and rename ---
 # All columns should be character except date variables listed below.
-quarter <- read_csv(paste0(wd_path, "/data/ISD_", date_download, ".CSV"), 
+quarter <- read_csv(paste0(data_path, "/", date_download, "ISD.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
@@ -83,6 +86,10 @@ names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
                     "audit_fail_2", "audit_fail_3", "audit_fail_4", 
                     "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
                     "referral_error_manage", "practice_code", "hb_surgery")
+
+quarter %<>%
+  mutate(hb_surgery = NA)
+
 
 ### Reformat ---
 table(quarter$hb_surgery) ## Where is D? Cumbria
@@ -214,15 +221,15 @@ quarter %<>%
   glimpse()
 
 gp_link <- read_csv(gp_path) %>% 
-  mutate(gp_prac = str_sub(`Prac code`, 1, 4),
+  mutate(gp_prac = str_sub(praccode, 1, 4),
          gp_prac = as.numeric(gp_prac)) %>%
   # data now has two rows where gp_prac==9999; keep where add1=="unknown"
   # and remove add1/add2=="PATIENTS REGISTERED WITH A GP IN ENG WAL OR N IRE"
-  filter(`Prac code` != 99995) %>% 
-  select(gp_prac, `Add 1`) %>% 
+  filter(praccode != 99995) %>% 
+  select(gp_prac, `add 1`) %>% 
   # use title case to clean practice names
-  mutate(add1 = str_to_title(`Add 1`)) %>% 
-  rename(practice_name = `Add 1`) %>% 
+  mutate(add1 = str_to_title(`add 1`)) %>% 
+  rename(practice_name = `add 1`) %>% 
   glimpse()
 
 quarter <- left_join(quarter, gp_link, by="gp_prac")
@@ -365,14 +372,12 @@ quarter %<>%
          audit_outcome, audit_batch_fail, audit_batch_outcome) %>% 
   glimpse()
 
-saveRDS(quarter, paste0(wd_path, 
-                        "/output/aaa_extract_", year, month, ".rds"))
+saveRDS(quarter, paste0(wd_path, "/aaa_extract_", year, month, ".rds"))
 
 
 #### 3: Exclusions extract ####
 ## Import and process ---
-exclude <- read_csv(paste0(wd_path, "/data/ISD-Exclusions_", 
-                           date_download, ".CSV"), 
+exclude <- read_csv(paste0(data_path, "/", date_download, "ISD-Exclusions.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
@@ -405,6 +410,5 @@ exclude %<>%
   glimpse()
 
 ## Write out ---
-saveRDS(exclude, paste0(wd_path, 
-                        "/output/aaa_exclusions_", year, month, ".rds"))
+saveRDS(exclude, paste0(wd_path, "/aaa_exclusions_", year, month, ".rds"))
 
