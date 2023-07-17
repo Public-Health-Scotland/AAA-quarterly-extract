@@ -33,11 +33,11 @@ gc()
 
 
 ## Values
-yymm <- "20200923"
+yymm <- "20180905"
 
-year <- 2020
+year <- 2018
 month <- "09"
-date_download <- "230920-"
+#date_download <- "230920-"
 
 
 ## Pathways
@@ -55,7 +55,7 @@ simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
 #### 2: Main extract ####
 ### Import and rename ---
 # All columns should be character except date variables listed below.
-quarter <- read_csv(paste0(data_path, "/", date_download, "ISD.CSV"), 
+quarter <- read_csv(paste0(data_path, "/ISD.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
@@ -82,10 +82,10 @@ names(quarter) <- c("chi", "upi", "surname", "forename", "dob", "postcode",
                     "date_seen_outpatient", "aneurysm_related", "apl_measure",
                     "apt_measure", "largest_measure", "result_verified", 
                     "date_verified", "date_death", "date_referral_true", 
-                    "first_outcome", "audit_fail_reason", "audit_fail_1", 
-                    "audit_fail_2", "audit_fail_3", "audit_fail_4", 
-                    "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
-                    "referral_error_manage", "practice_code", "hb_surgery")
+                    "first_outcome")#, "audit_fail_reason", "audit_fail_1", 
+                    # "audit_fail_2", "audit_fail_3", "audit_fail_4", 
+                    # "audit_fail_5", "audit_batch_fail", "audit_batch_outcome",
+                    # "referral_error_manage", "practice_code")#, "hb_surgery")
 
 quarter %<>%
   mutate(hb_surgery = NA)
@@ -356,7 +356,8 @@ quarter %<>%
   rename(postcode = pc8) %>% 
   mutate(hbres = recode(hbres, "Northumbria" = "Borders")) %>%  # Why not done above?
   select(financial_year:fy_quarter, chi:dob, sex, postcode,
-         practice_code, practice_name, pat_elig, hbres, 
+         #practice_code, practice_name, 
+         pat_elig, hbres, 
          eligibility_period, age65_onstartdate, over65_onstartdate,
          dob_eligibility, ca2019, hb_screen,
          simd2020v2_sc_quintile, simd2020v2_hb2019_quintile,
@@ -365,11 +366,12 @@ quarter %<>%
          apl_measure, apt_measure, largest_measure, aaa_size, aaa_size_group,
          date_result, result_verified, date_verified,
          date_referral, date_referral_true, date_seen_outpatient,
-         result_outcome, first_outcome, referral_error_manage,
+         result_outcome, first_outcome, #referral_error_manage,
          date_surgery, fy_surgery, hb_surgery, surg_method, date_death,
-         aneurysm_related, audit_flag, audit_result, audit_fail_reason,
-         audit_fail_1, audit_fail_2, audit_fail_3, audit_fail_4, audit_fail_5,
-         audit_outcome, audit_batch_fail, audit_batch_outcome) %>% 
+         aneurysm_related, audit_flag, audit_result, #audit_fail_reason,
+         #audit_fail_1, audit_fail_2, audit_fail_3, audit_fail_4, audit_fail_5,
+         audit_outcome, #audit_batch_fail, audit_batch_outcome
+         ) %>% 
   glimpse()
 
 saveRDS(quarter, paste0(wd_path, "/aaa_extract_", year, month, ".rds"))
@@ -377,7 +379,7 @@ saveRDS(quarter, paste0(wd_path, "/aaa_extract_", year, month, ".rds"))
 
 #### 3: Exclusions extract ####
 ## Import and process ---
-exclude <- read_csv(paste0(data_path, "/", date_download, "ISD-Exclusions.CSV"), 
+exclude <- read_csv(paste0(data_path, "/ISD-Exclusions.CSV"), 
                     col_names = FALSE, 
                     col_types=cols(.default = "c",
                                    X5 = col_date("%Y%m%d"),
