@@ -32,13 +32,10 @@ gc()
 ## Values
 year <- 2023
 month <- "06"
-year2 <- 2022
 
 
 ## Pathways
 wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts/", year, month)
-hist_path <-paste0("/PHI_conf/AAA/Topics/Data/RoutineExtracts",
-                   "/", year2, "0601")
 
 
 ## Function
@@ -98,10 +95,8 @@ write_report <- function(df1, hb_name) {
 
 
 #### 2: Review Extract QA ####
-# quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
-#                            year, month, ".rds")) |>
-quarter <- read_rds(paste0(hist_path, "/aaa_extract_", ## still need to make :/
-                           year2, month, ".rds")) |>
+quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
+                           year, month, ".rds")) |>
   filter(audit_flag == "01")
 
 table(quarter$audit_result, useNA = "ifany")
