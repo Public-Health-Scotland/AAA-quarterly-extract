@@ -11,10 +11,10 @@
 
 
 ## Notes:
-# This audit is completed using the 1 June extract and is to be completed 
-# (including HB response) before the 1 September extract is run. This ensures 
-# that the QA data used for the autumn KPIs and subsequent publication are 
-# complete.
+# This audit is run using the 1 June extract and is to be completed (including
+# sending reports to HBs and their system updates) before the 1 September 
+# extract is run. This ensures that the QA data used for the autumn KPIs and 
+# subsequent publication are complete.
 
 
 ### 1: Housekeeping ----
@@ -62,7 +62,6 @@ write_report <- function(df1, hb_name) {
   # Inpatients (extract_simd)
   data1 <- df1 |> 
     filter(hb_screen == hb_name)
-
   
   ## Create workbook
   wb <- createWorkbook()
@@ -90,7 +89,7 @@ write_report <- function(df1, hb_name) {
            cols = 1:ncol(data1), gridExpand = TRUE, stack = TRUE)
   setColWidths(wb, "QA audit--follow-ups", cols = 1:ncol(data1), 
                widths = "auto")
-
+  
   
   ### Save ----
   saveWorkbook(wb, paste0(wd_path, "/output/QA_audit_", hb_name, "_",
@@ -102,11 +101,12 @@ write_report <- function(df1, hb_name) {
 # quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
 #                            year, month, ".rds")) |>
 quarter <- read_rds(paste0(hist_path, "/aaa_extract_", ## still need to make :/
-                             year2, month, ".rds")) |>
+                           year2, month, ".rds")) |>
   filter(audit_flag == "01")
 
 table(quarter$audit_result, useNA = "ifany")
 table(quarter$audit_result, quarter$financial_year, useNA = "ifany")
+# 2023-06:
 # 01 (standard met): 30,594
 # 02 (standard not met): 4,510
 # NA (no response): 0
@@ -118,7 +118,7 @@ audit_qa <- quarter |>
 
 audit_qa <- droplevels(audit_qa)
 table(audit_qa$hb_screen, useNA = "ifany")
-table(audit_qa$financial_year, audit_qa$hb_screen)
+table(audit_qa$hb_screen, audit_qa$financial_year)
 
 audit_qa <- audit_qa |> 
   select(financial_year, upi, hbres, hb_screen, 
