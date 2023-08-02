@@ -95,6 +95,7 @@ write_QA_report <- function(df1, hb_name, YYMM) {
 }
 
 
+<<<<<<< HEAD
 write_HBsurgery_report <- function(df1, hb_name, YYMM) {
   
   ### Setup workbook ----
@@ -152,6 +153,9 @@ write_HBsurgery_report <- function(df1, hb_name, YYMM) {
 
 
 #### 2: QA Audit ----
+=======
+#### 2: Review Extract QA ####
+>>>>>>> 6dc31aa05de6aa549efbd41ec79d62c123966f23
 quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
                            year, month, ".rds")) |>
   filter(audit_flag == "01")
@@ -234,6 +238,7 @@ for (hb_name in hb_names) {
   
 }
 
+<<<<<<< HEAD
 ## HB of Surgery
 hb_names <- surgery_board_qa |> 
   distinct(hb_screen) |> 
@@ -244,3 +249,5 @@ for (hb_name in hb_names) {
   write_HBsurgery_report(surgery_board_qa, hb_name, "202306")
   
 }
+=======
+>>>>>>> 6dc31aa05de6aa549efbd41ec79d62c123966f23
