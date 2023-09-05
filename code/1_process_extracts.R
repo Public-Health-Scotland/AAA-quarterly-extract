@@ -34,8 +34,8 @@ gc()
 
 ## Values
 year <- 2023
-month <- "06"
-date_download <- "20230601"
+month <- "09"
+date_download <- "20230901"
 
 
 ## Pathways
@@ -46,7 +46,7 @@ gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files
                   "/gpprac.csv") # Changed from .sav 2Jun23
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
-                    "/postcode_2022_2_simd2020v2.rds")
+                    "/postcode_2023_1_simd2020v2.rds")
 
 
 #### 2: Main extract ####
@@ -185,7 +185,8 @@ quarter %<>%
                                       c("2010/11", "2011/12", "2012/13", "2013/14", 
                                         "2014/15", "2015/16", "2016/17", "2017/18", 
                                         "2018/19", "2019/20", "2020/21", "2021/22", 
-                                        "2022/23", "2023/24", "2025/26", "2056/57")
+                                        "2022/23", "2023/24", "2024/25", "2025/26", 
+                                        "2056/57")
                                       )) %>% 
   arrange(upi, fy_quarter) %>% 
   glimpse()
@@ -214,16 +215,15 @@ quarter %<>%
   glimpse()
 
 gp_link <- read_csv(gp_path) %>% 
-  mutate(gp_prac = str_sub(`Prac code`, 1, 4),
+  mutate(gp_prac = str_sub(praccode, 1, 4),
          gp_prac = as.numeric(gp_prac)) %>%
-  # data now has two rows where gp_prac==9999; keep where add1=="unknown"
-  # and remove add1/add2=="PATIENTS REGISTERED WITH A GP IN ENG WAL OR N IRE"
-  filter(`Prac code` != 99995) %>% 
-  select(gp_prac, `Add 1`) %>% 
+  # # data now has two rows where gp_prac==9999; keep where add1=="unknown"
+  # # and remove add1/add2=="PATIENTS REGISTERED WITH A GP IN ENG WAL OR N IRE"
+  # filter(praccode != 99995) %>% 
   # use title case to clean practice names
-  mutate(add1 = str_to_title(`Add 1`)) %>% 
-  rename(practice_name = `Add 1`) %>% 
-  glimpse()
+  mutate(practice_name = str_to_title(`add 1`)) %>% 
+  select(gp_prac, practice_name) %>% 
+glimpse()
 
 quarter <- left_join(quarter, gp_link, by="gp_prac")
 
@@ -279,7 +279,8 @@ quarter %<>%
     between(dob, dmy("01-04-1954"), dmy("31-03-1955")) ~ "Turned 66 in year 2020/21",
     between(dob, dmy("01-04-1955"), dmy("31-03-1956")) ~ "Turned 66 in year 2021/22",
     between(dob, dmy("01-04-1956"), dmy("31-03-1957")) ~ "Turned 66 in year 2022/23",
-    between(dob, dmy("01-04-1957"), dmy("31-03-1958")) ~ "Turned 66 in year 2023/24"
+    between(dob, dmy("01-04-1957"), dmy("31-03-1958")) ~ "Turned 66 in year 2023/24",
+    between(dob, dmy("01-04-1958"), dmy("31-03-1959")) ~ "Turned 66 in year 2024/25"
   ),
   age65_onstartdate = case_when(
     hbres == "Ayrshire & Arran" &

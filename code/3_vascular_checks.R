@@ -10,6 +10,8 @@
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
+# Revised/run on Posit WB
+# R version 4.1.2
 ##########################################################
 
 ## Some things to think about:
@@ -44,10 +46,11 @@ gc()
 
 ## Values
 year <- 2023
-month <- "06"
-date_extract <- "2023-06-01"
-# Cutoff should be day extract prepared... should it be last day of previous month??
-date_cutoff <- "2023-06-01" 
+month <- "09"
+# Extract date should be date extract created, which should be 1st of quarter
+date_extract <- "2023-09-05"
+# Cutoff should be the date the extract expected (1st of March, June, Sept, Dec)
+date_cutoff <- "2023-09-01" 
 today <- paste0("Workbook created ", Sys.Date())
 
 
@@ -68,9 +71,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2023-05-30"
+# "2012-08-13" "2023-08-29"
 range(quarter$date_referral_true)
-# "2012-08-15" "2023-05-31"
+# "2012-08-15" "2023-08-30"
 
 
 #### 3. Validate data ####
@@ -83,7 +86,7 @@ range(quarter$date_referral_true)
 check_refs <- validator("not_recorded_recommend" = result_outcome %in% c("02","06")
                         & is.na(referral_error_manage))
 
-review_refs <- confront(quarter, check_refs, key  ="id")
+review_refs <- confront(quarter, check_refs, key ="id")
 summary(review_refs)
 
 
@@ -107,7 +110,7 @@ check_dates <- validator("date_screen_extract" = date_screen > date_extract,
                          "date_surgery_seenOP" = !is.na(date_surgery) &
                            date_surgery < date_seen_outpatient)
 
-review_dates <- confront(quarter_date, check_dates, key  ="id")
+review_dates <- confront(quarter_date, check_dates, key ="id")
 summary(review_dates)
 
 ## Check date_seenOP_na: these will likely be ongoing cases with most recent 
@@ -116,12 +119,14 @@ no_OPdate <- quarter_date[is.na(quarter_date$date_seen_outpatient),]
 table(no_OPdate$fy_quarter)
 table(no_OPdate$result_outcome, useNA = "ifany")
 # 03: DNA outpatient service: Self-discharge
+# 10: Awaiting further AAA growth
 # 18: Ongoing assessment by vascular
 # 20: Other final outcome
 table(no_OPdate$result_outcome, no_OPdate$fy_quarter)
 #    2021/22_3 2022/23_2 2022/23_4
 # 03         1         0         0
-# 18         0         1         1
+# 10         0         0         1
+# 18         0         1         0
 # 20         0         0         1
 
 rm(no_OPdate, quarter_date)
@@ -157,7 +162,7 @@ check_outcomes <- validator("result_outcome_na" = is.na(result_outcome),
                             "outcome_no_final" = result_outcome %in% 
                               c("09","10","14","17","18","19"))
 
-review_outcomes <- confront(quarter_outcome, check_outcomes, key  ="id")
+review_outcomes <- confront(quarter_outcome, check_outcomes, key ="id")
 summary(review_outcomes)
 
 ## Check result_outcome_na: these will likely be ongoing cases with most 
@@ -172,8 +177,8 @@ outcome_no_OP <- quarter[quarter$result_outcome %in% c("01","02","03","04","05")
                               !is.na(quarter$surg_method) |
                               !is.na(quarter$date_surgery)),]
 table(outcome_no_OP$fy_quarter, useNA = "ifany")
-# 2016/17_2 2022/23_1 ##!!Why are 2 coming up here when only 1 came up in validation check??
-# 1         1         ##!!And why 2016/17??
+# 2016/17_2 2020/21_2 2021/22_4 2022/23_1 ## Expecting 3 based on validation
+# 1         1         1         1         ## 2016/17 -- referred in error
 
 ## Check outcome_no_final: these will likely be ongoing cases with most 
 # recent financial year.
@@ -188,13 +193,12 @@ table(outcome_no_final$result_outcome, useNA = "ifany")
 # 18: Ongoing assessment by vascular
 # 19: Final outcome pending
 table(outcome_no_final$result_outcome, outcome_no_final$fy_quarter)
-#    2020/21_2 2020/21_4 2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2022/23_4 2023/24_1
-# 09         0         0         0         0         1         0         2         0         1         0
-# 10         1         1         1         2         1         0         1         2         0         0
-# 14         0         0         0         0         0         0         1         0         0         0
-# 17         0         0         1         0         2         0         1         0         1         1
-# 18         0         0         2         1         2         6         4         4         5         7
-# 19         0         1         0         0         0         0         0         0         0         0
+#    2020/21_4 2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2022/23_4 2023/24_1 2023/24_2 
+# 09         0         0         0         0         0         0         0         1         1         0
+# 10         0         1         2         0         0         1         1         1         0         0
+# 17         0         1         0         3         2         1         1         1         2         0
+# 18         0         2         0         1         1         2         2         3        12         9
+# 19         1         0         0         0         0         0         0         0         0         0
 
 rm(no_outcome, outcome_no_OP, outcome_no_final, quarter_outcome)
 
@@ -285,15 +289,8 @@ appt_notreq <- quarter %>%
   arrange(hbres, fy_quarter)
 
 table(appt_notreq$largest_measure, appt_notreq$result_outcome)
-# 02 Referred in error: Appointment with vascular service not required
-# 06 Referred in error: As determined by vascular service
-# 15 Appropriate for Surgery: AAA repaired and survived 30 days
-# 20 Other final outcome
+
 table(appt_notreq$referral_error_manage)
-## Key for referral_error_manage:
-# 01 Discharged
-# 02 Surveillance 3 months
-# 03 Surveillance 12 months
 
 ## HBs
 appt_notreq_hb <- appt_notreq %>% 

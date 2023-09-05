@@ -10,6 +10,8 @@
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
+# Revised/run on Posit WB
+# R version 4.1.2
 ##########################################################
 
 ## Some things to think about:
@@ -39,14 +41,14 @@ gc()
 
 ## Values
 year <- 2023
-month <- "06"
-previous <- 202303
+month <- "09"
+previous <- 202306
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2023/24_2"
+fyq_current <- "2023/24_3"
 
 
 ## Pathways
@@ -67,6 +69,7 @@ length(unique(quarter$upi))
 # 202212: 375,084 of 536,613 records
 # 202303: 384,113 of 550,306 records
 # 202306: 393,232 of 564,491 records
+# 202309: 402,297 of 579,181 records
 
 
 #### 3. Validate data ####
@@ -110,9 +113,9 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 2023/24_1       13831 # appointments have been set up but not happened
-# 2023/24_2         256
-# 2023/24_3          11
+# 2023/24_2       15739 
+# 2023/24_3         160 # appointments have been set up but not happened
+# 2024/25_3           1
 # 2025/26_2           1
 # 2056/57_2           1
 # unrecorded          0
@@ -132,12 +135,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2021/22_4        8046
-# 2 2022/23_1        9087
-# 3 2022/23_2        8923
-# 4 2022/23_3        9392
-# 5 2022/23_4       10362
-# 6 2023/24_1        6112
+# 2022/23_1        9087
+# 2022/23_2        8923
+# 2022/23_3        9392
+# 2022/23_4       10362
+# 2023/24_1        9888
+# 2023/24_2        7423
 
 rm(annual, temp)
 ####
@@ -170,6 +173,8 @@ table(droplevels(hb_norf$hb_screen))
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
 
+rm(hb_norf) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
+
 
 ### D. Check audits ----
 check_audits <- validator("total_audits" = audit_flag == "01",
@@ -188,7 +193,7 @@ review_audits <- confront(quarter, check_audits, key  ="id")
 summary(review_audits)
 
 ## Recall advice for audits that failed
-table(quarter$audit_result, quarter$audit_outcome)
+table(quarter$audit_result, quarter$audit_outcome, useNA = "ifany")
 ## Key for audit_result:
 # 01 Standard met
 # 02 Standard not met
@@ -199,6 +204,32 @@ table(quarter$audit_result, quarter$audit_outcome)
 # 04 No Recall - Referred to vascular
 # 05 No Recall - Verified by 2nd opinion
 
+## Which HBs did not record the reason an audit failed?
+hb_no_fail_reason <- quarter %>%
+  filter(audit_result == "02", is.na(audit_fail_reason)) %>% 
+  arrange(hb_screen, fy_quarter)
+
+table(droplevels(hb_no_fail_reason$hb_screen))
+# Borders 
+# 8 
+table(droplevels(hb_no_fail_reason$hb_screen), hb_no_fail_reason$fy_quarter)
+# Follow up with HBs if any occur in current fy_quarter
+
+rm(hb_no_fail_reason) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
+
+## Which HBs did not record an audit outcome?
+hb_no_outcome <- quarter %>%
+  filter(audit_result == "02", is.na(audit_outcome)) %>% 
+  arrange(hb_screen, fy_quarter)
+
+table(droplevels(hb_no_outcome$hb_screen))
+# Borders 
+# 8 
+table(droplevels(hb_no_outcome$hb_screen), hb_no_outcome$fy_quarter)
+# Follow up with HBs if any occur in current fy_quarter
+
+rm(hb_no_outcome) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
+
 
 ### E. Derived variable audits ----
 table(quarter$aaa_size_group)
@@ -208,6 +239,8 @@ very_large <- quarter[(quarter$aaa_size_group == "very large error" &
 
 table(very_large$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
+
+rm(very_large) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
 
 
 #### 4a. Combine checks -- summaries ####
@@ -256,7 +289,7 @@ quarter_checks <- quarter %>%
 rm(check_roots, check_dates, check_results, check_audits,
    review_roots, review_dates, review_results, review_audits,
    review_roots_df, review_dates_df, review_results_df, review_audits_df,
-   review, roots, dates, results, audits, hb_norf, very_large)
+   review, roots, dates, results, audits)
 
 
 #### 5. Summarize ####
@@ -333,12 +366,6 @@ rm(summary_hb, summary_checks, quarter_checks)
 
 #### 6. Compare ####
 ## Bring in records from previous extract run to do comparison of numbers
-# # Delete next two commands in future, once files are moved to new set-up
-# # and uncomment one using 'previous_path'
-# old_path <-paste0("/PHI_conf/AAA/Portfolio/Data/RoutineExtracts",
-#                    "/", year, "0601")
-# historic_checks <- readRDS(paste0(old_path, "/aaa_checks_summary_",
-#                                    "202206.rds"))
 historic_checks <- readRDS(paste0(previous_path, "/checks/aaa_checks_summary_",
                                   previous, ".rds"))
 
@@ -363,7 +390,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2023/24_2", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2024/25_3", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -374,7 +401,7 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 46) %>% 
+          .before = 48) %>% 
   # # only need to use below in case of data entry error!
   # add_row(hbres="Scotland", fy_quarter="2023/24_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
