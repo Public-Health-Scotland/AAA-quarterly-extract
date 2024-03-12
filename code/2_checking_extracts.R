@@ -40,15 +40,15 @@ gc()
 
 
 ## Values
-year <- 2023
-month <- "09"
-previous <- 202306
+year <- 2024
+month <- "03"
+previous <- 202312
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2023/24_3"
+fyq_current <- "2024/25_1"
 
 
 ## Pathways
@@ -70,6 +70,7 @@ length(unique(quarter$upi))
 # 202303: 384,113 of 550,306 records
 # 202306: 393,232 of 564,491 records
 # 202309: 402,297 of 579,181 records
+# 202403: 421,311 of 609,003 records
 
 
 #### 3. Validate data ####
@@ -113,12 +114,12 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 2023/24_2       15739 
-# 2023/24_3         160 # appointments have been set up but not happened
-# 2024/25_3           1
-# 2025/26_2           1
-# 2056/57_2           1
-# unrecorded          0
+# 1 2023/24_4       14029
+# 2 2024/25_1         153 # appointments set up but not happened yet
+# 3 2024/25_3           1
+# 4 2025/26_2           1
+# 5 2056/57_2           1
+# 6 unrecorded          0
 #
 # Note that last three quarters have not happened yet (for this data set):
 # These were appointments that were set up with the wrong dates
@@ -135,12 +136,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 2022/23_1        9087
-# 2022/23_2        8923
 # 2022/23_3        9392
-# 2022/23_4       10362
-# 2023/24_1        9888
-# 2023/24_2        7423
+# 2 2022/23_4       10362
+# 3 2023/24_1        9888
+# 4 2023/24_2       10737
+# 5 2023/24_3        9043
+# 6 2023/24_4        6548
 
 rm(annual, temp)
 ####
@@ -169,9 +170,10 @@ hb_norf <- quarter %>%
 
 table(droplevels(hb_norf$hb_screen))
 # Grampian  Greater Glasgow & Clyde  Highland 
-# 4         7                        1 
+# 4         8                        1 
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
+# AMc note: new case in GGC 2023/24_4 - needs contacting
 
 rm(hb_norf) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
 
@@ -284,7 +286,7 @@ quarter_checks <- quarter %>%
 
 # # To view results that stand out:
 # quarter_checks %>% filter(!HB_res_screen == 1) %>%
-#   View()
+#  View()
 
 rm(check_roots, check_dates, check_results, check_audits,
    review_roots, review_dates, review_results, review_audits,
