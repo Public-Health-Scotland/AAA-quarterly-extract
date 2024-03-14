@@ -165,31 +165,46 @@ table(quarter$hb_screen, useNA = "ifany")
 
 ### Add financial year and quarter ---
 # Check latest dates of date_screen for fct_relevel of financial_year & fy_surgery
-# (add new level below if needed)
-##!! Can create a function that does this?
 tail(table(quarter$date_screen))
 
 ## Create financial year/quarter from screening date
-quarter %<>%
-  mutate(financial_year = extract_fin_year(date_screen),
-         financial_quarter = qtr(date_screen, format="short")) %>% 
-  # financial_quarter should be represented by a number
-  mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
-         financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
-                                       financial_quarter == "Apr" ~ 1,
-                                       financial_quarter == "Jul" ~ 2,
-                                       financial_quarter == "Oct" ~ 3),
-         fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
-  mutate(fy_quarter = if_else(fy_quarter == "NA_NA", "unrecorded", fy_quarter)) %>%  
-  mutate(financial_year = fct_relevel(financial_year, 
-                                      c("2010/11", "2011/12", "2012/13", "2013/14", 
-                                        "2014/15", "2015/16", "2016/17", "2017/18", 
-                                        "2018/19", "2019/20", "2020/21", "2021/22", 
-                                        "2022/23", "2023/24", "2024/25", "2025/26", 
-                                        "2056/57")
-                                      )) %>% 
-  arrange(upi, fy_quarter) %>% 
-  glimpse()
+# function - creates vector of all FYs from screening date,
+# adds financial year/quarter and fy_quarter columns from screening date, 
+# then uses vector of FYs to relevel financial_year
+assign_screen_fy_quarter <- function(data){
+  
+  list_fin_years <- data %>%
+    mutate(fy = extract_fin_year(date_screen)) %>%
+    select(fy) %>% 
+    filter(!is.na(fy)) %>% 
+    unique() %>% 
+    arrange(fy) %>% # despite character column, still manages to arrange - feel free to update if any better ideas
+    pull() 
+  
+  
+  data <- data %>% 
+    mutate(financial_year = extract_fin_year(date_screen),
+           financial_quarter = qtr(date_screen, format="short")) %>% 
+    # financial_quarter should be represented by a number
+    mutate(financial_quarter = str_sub(financial_quarter, 1, 3),
+           financial_quarter = case_when(financial_quarter == "Jan" ~ 4,
+                                         financial_quarter == "Apr" ~ 1,
+                                         financial_quarter == "Jul" ~ 2,
+                                         financial_quarter == "Oct" ~ 3),
+           fy_quarter = paste0(financial_year, "_", financial_quarter)) %>% 
+    mutate(fy_quarter = if_else(fy_quarter == "NA_NA", "unrecorded", fy_quarter)) %>%  
+    mutate(financial_year = fct_relevel(financial_year, 
+                                        list_fin_years)
+    ) %>% 
+    arrange(upi, fy_quarter) %>% 
+    glimpse()
+  
+}
+
+quarter <- assign_screen_fy_quarter(quarter)
+
+# Check latest financial_year values, ensure match check above
+tail(table(quarter$financial_year))
 
 
 ## Create financial year from surgery date (year of surgery)
