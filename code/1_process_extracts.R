@@ -63,6 +63,7 @@ list_fin_years <- function(data, column){
     arrange(fy) %>% 
     pull() 
   
+  return(list_fin_years)
 }
 
 
@@ -185,7 +186,7 @@ table(quarter$hb_screen, useNA = "ifany")
 tail(table(quarter$date_screen))
 
 # create list of FYs in date_screen
-fy_in_data <- list_fin_years(quarter, column = date_screen)
+fy_in_data <- list_fin_years(quarter, date_screen)
 
 ## Create financial year/quarter from screening date
 
@@ -214,7 +215,7 @@ tail(table(quarter$financial_year))
 tail(table(quarter$date_surgery))
 
 # create list of FYs in date_surgery
-fy_in_data <- list_fin_years(quarter, column = date_surgery)
+fy_in_data <- list_fin_years(quarter, date_surgery)
 
 quarter %<>%
   mutate(fy_surgery = extract_fin_year(date_surgery)) %>%
@@ -282,29 +283,44 @@ quarter %<>%
 
 ### Calculate eligibility period ---
 # Eligibility period is the financial year in which the person turned 66. 
-#!! Rewrite as a function so that new lines don't need added when later 
 #!! financial years become relevant.
 # Boards have differing start dates for eligiblity
 # aged65_onstartdate counts if a person was 65 when their specific board started screening
 # over65_onstartdate counts if a person was over 65 when their specific board started screening.
 # eligibility_period combines the above two variables into one.
 
+# function - assigns "eligibility period" for each value in fy_in_data 
+assign_elig_date <- function(data, finyr){
+  
+  finstart <- paste0("01-04-", substr(finyr, 1,4)) # fin year start and end dates
+  finend <- paste0("31-03-",substr(finyr,1,2), substr(finyr,6,7))
+  
+  dobstart <- format((dmy(finstart)-years(66)), "%d-%m-%Y") # start and end dates of year 66 years before FY of interest
+  dobend <- format((dmy(finend)-years(66)), "%d-%m-%Y")
+  
+  limits <- c(dobstart, dobend) 
+  
+  data <- data %>% 
+    mutate(eligibility_period = ifelse(
+      between(dob, dmy(limits[1]), dmy(limits[2])), 
+      paste0("Turned 66 in year ", as.character(finyr)), 
+      eligibility_period
+    ))
+  return(data)
+}
+
+quarter <- quarter %>% 
+  mutate(eligibility_period = NA) # required for the above function to work (AMc note: way to get around this?)
+
+for (i in fy_in_data) {
+  quarter <- assign_elig_date(quarter, i)
+}
+
+table(quarter$eligibility_period) # sense check the numbers
+
+
 quarter %<>%
-  mutate(eligibility_period = case_when(
-    between(dob, dmy("01-04-1947"), dmy("31-03-1948")) ~ "Turned 66 in year 2013/14",
-    between(dob, dmy("01-04-1948"), dmy("31-03-1949")) ~ "Turned 66 in year 2014/15",
-    between(dob, dmy("01-04-1949"), dmy("31-03-1950")) ~ "Turned 66 in year 2015/16",
-    between(dob, dmy("01-04-1950"), dmy("31-03-1951")) ~ "Turned 66 in year 2016/17",
-    between(dob, dmy("01-04-1951"), dmy("31-03-1952")) ~ "Turned 66 in year 2017/18",
-    between(dob, dmy("01-04-1952"), dmy("31-03-1953")) ~ "Turned 66 in year 2018/19",
-    between(dob, dmy("01-04-1953"), dmy("31-03-1954")) ~ "Turned 66 in year 2019/20",
-    between(dob, dmy("01-04-1954"), dmy("31-03-1955")) ~ "Turned 66 in year 2020/21",
-    between(dob, dmy("01-04-1955"), dmy("31-03-1956")) ~ "Turned 66 in year 2021/22",
-    between(dob, dmy("01-04-1956"), dmy("31-03-1957")) ~ "Turned 66 in year 2022/23",
-    between(dob, dmy("01-04-1957"), dmy("31-03-1958")) ~ "Turned 66 in year 2023/24",
-    between(dob, dmy("01-04-1958"), dmy("31-03-1959")) ~ "Turned 66 in year 2024/25"
-  ),
-  age65_onstartdate = case_when(
+  mutate(age65_onstartdate = case_when(
     hbres == "Ayrshire & Arran" &
       between(dob, dmy("01-06-1947"), dmy("31-05-1948")) ~ 1,
     hbres == "Borders" &
