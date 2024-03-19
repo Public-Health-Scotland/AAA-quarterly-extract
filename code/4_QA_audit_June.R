@@ -24,6 +24,7 @@ library(dplyr)
 library(readr)
 library(openxlsx)
 library(tidylog)
+library(forcats)
 
 
 rm(list=ls())
@@ -108,7 +109,7 @@ write_HBsurgery_report <- function(df1, hb_name, YYMM) {
                              border = "TopBottomLeftRight")
   
   ## Titles
-  title <- paste0("Hleath Board of Surgery Follow-up for ", hb_name)
+  title <- paste0("Health Board of Surgery Follow-up for ", hb_name)
   today <- paste0("Workbook created ", Sys.Date())
   
   ## Data
