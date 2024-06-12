@@ -41,14 +41,14 @@ gc()
 
 ## Values
 year <- 2024
-month <- "03"
-previous <- 202312
+month <- "06"
+previous <- 202403
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2024/25_1"
+fyq_current <- "2024/25_2"
 
 
 ## Pathways
@@ -71,6 +71,7 @@ length(unique(quarter$upi))
 # 202306: 393,232 of 564,491 records
 # 202309: 402,297 of 579,181 records
 # 202403: 421,311 of 609,003 records
+# 202406: 430,862 of 623,564 records
 
 
 #### 3. Validate data ####
@@ -114,16 +115,15 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 1 2023/24_4       14029
-# 2 2024/25_1         153 # appointments set up but not happened yet
-# 3 2024/25_3           1
-# 4 2025/26_2           1
+# 1 2024/25_2         680
+# 2 2024/25_3           1
+# 3 2025/26_2           1
+# 4 2025/26_3          49
 # 5 2056/57_2           1
 # 6 unrecorded          0
 #
-# Note that last three quarters have not happened yet (for this data set):
-# These were appointments that were set up with the wrong dates
-# and subsequently cancelled by the screening provider.
+# Note that last four quarters have not happened yet (for this data set):
+# AMc: no real idea of why these exist - 2025/26_3 are all Highland
 
 ## Remove screen_result == NA
 # to look at trend from previous six quarters
@@ -136,12 +136,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 2022/23_3        9392
-# 2 2022/23_4       10362
-# 3 2023/24_1        9888
-# 4 2023/24_2       10737
-# 5 2023/24_3        9043
-# 6 2023/24_4        6548
+# 1 2022/23_4       10362
+# 2 2023/24_1        9888
+# 3 2023/24_2       10737
+# 4 2023/24_3        9043
+# 5 2023/24_4        9444
+# 6 2024/25_1        6441
 
 rm(annual, temp)
 ####
@@ -169,11 +169,11 @@ hb_norf <- quarter %>%
   arrange(hb_screen, fy_quarter)
 
 table(droplevels(hb_norf$hb_screen))
-# Grampian  Greater Glasgow & Clyde  Highland 
-# 4         8                        1 
+# Grampian        Greater Glasgow & Clyd          Highland          Lothian 
+#    4                       7                       1                 1 
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
-# AMc note: new case in GGC 2023/24_4 - needs contacting
+# AMc note: new case in Lothian 2024/25_1 - needs contacting
 
 rm(hb_norf) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
 
@@ -392,7 +392,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2024/25_3", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2024/25_2", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -403,20 +403,20 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 48) %>% 
-  # # only need to use below in case of data entry error!
-  # add_row(hbres="Scotland", fy_quarter="2023/24_3", screening_n=0, patient_n=0,
+          .before = 50) %>% 
+  # only need to use below in case of data entry error!
+  # add_row(hbres="Scotland", fy_quarter="2025/26_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
   #         date_screen_before_offer_n=0, date_result_before_screen_n=0,
   #         date_verified_before_result_n=0, date_referral_before_verified_n=0,
   #         date_seenOP_before_refTrue_n=0, date_death_before_surgery_n=0,
   #         not_recorded_result_n=0, not_recorded_followup_n=0,
-  #         no_result_followup_n=0, invalid_measure1_n=0, invalid_measure2_n=0, 
+  #         no_result_followup_n=0, invalid_measure1_n=0, invalid_measure2_n=0,
   #         audits_n=0,audit_fail_n=0,not_recorded_fail_reason_n=0,
   #         not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
   #         # to calculate placement index, identify row index of the same fy_quarter
   #         # in summary_scot table and change number below to match
-  #         .before = 46) %>% 
+  #         .before = 53) %>%
   # above converts as.integer to numeric; needs to be converted back
   mutate(across(3:24, as.integer))
 

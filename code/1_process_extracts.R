@@ -34,8 +34,8 @@ gc()
 
 ## Values
 year <- 2024
-month <- "03"
-date_download <- "20240301"
+month <- "06"
+date_download <- "20240607"
 
 
 ## Pathways
@@ -66,6 +66,25 @@ list_fin_years <- function(data, column){
   return(list_fin_years)
 }
 
+# function - assigns "eligibility period" for each value in fy_in_data 
+assign_elig_date <- function(data, finyr){
+  
+  finstart <- paste0("01-04-", substr(finyr, 1,4)) # fin year start and end dates
+  finend <- paste0("31-03-",substr(finyr,1,2), substr(finyr,6,7))
+  
+  dobstart <- format((dmy(finstart)-years(66)), "%d-%m-%Y") # start and end dates of year 66 years before FY of interest
+  dobend <- format((dmy(finend)-years(66)), "%d-%m-%Y")
+  
+  limits <- c(dobstart, dobend) 
+  
+  data <- data %>% 
+    mutate(eligibility_period = ifelse(
+      between(dob, dmy(limits[1]), dmy(limits[2])), 
+      paste0("Turned 66 in year ", as.character(finyr)), 
+      eligibility_period
+    ))
+  return(data)
+}
 
 #### 2: Main extract ####
 ### Import and rename ---
@@ -289,26 +308,6 @@ quarter %<>%
 # over65_onstartdate counts if a person was over 65 when their specific board started screening.
 # eligibility_period combines the above two variables into one.
 
-# function - assigns "eligibility period" for each value in fy_in_data 
-assign_elig_date <- function(data, finyr){
-  
-  finstart <- paste0("01-04-", substr(finyr, 1,4)) # fin year start and end dates
-  finend <- paste0("31-03-",substr(finyr,1,2), substr(finyr,6,7))
-  
-  dobstart <- format((dmy(finstart)-years(66)), "%d-%m-%Y") # start and end dates of year 66 years before FY of interest
-  dobend <- format((dmy(finend)-years(66)), "%d-%m-%Y")
-  
-  limits <- c(dobstart, dobend) 
-  
-  data <- data %>% 
-    mutate(eligibility_period = ifelse(
-      between(dob, dmy(limits[1]), dmy(limits[2])), 
-      paste0("Turned 66 in year ", as.character(finyr)), 
-      eligibility_period
-    ))
-  return(data)
-}
-
 quarter <- quarter %>% 
   mutate(eligibility_period = NA) # required for the above function to work (AMc note: way to get around this?)
 
@@ -316,7 +315,7 @@ for (i in fy_in_data) {
   quarter <- assign_elig_date(quarter, i)
 }
 
-table(quarter$eligibility_period) # sense check the numbers
+table(quarter$eligibility_period, useNA = "ifany") # sense check the numbers
 
 
 quarter %<>%
