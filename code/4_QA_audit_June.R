@@ -32,7 +32,7 @@ gc()
 
 
 ## Values
-year <- 2023
+year <- 2024
 month <- "06"
 
 
@@ -159,10 +159,10 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
 
 table(quarter$audit_result, useNA = "ifany")
 table(quarter$audit_result, quarter$financial_year, useNA = "ifany")
-# 2023-06:
-# 01 (standard met): 30,594
-# 02 (standard not met): 4,510
-# NA (no response): 0
+# 2024-06:
+# 01 (standard met): 34,240
+# 02 (standard not met): 5,065
+# NA (no response): 13
 
 
 ## Identify HBs missing audit_result
@@ -214,7 +214,7 @@ surgery_board_qa <- quarter |>
 
 table(surgery_board_qa$date_surgery, useNA = "ifany")
 table(surgery_board_qa$hb_surgery, useNA = "ifany")
-# 2023/06: 8 surgeries in Cumbria; 1 NA
+# 2024/06: 8 surgeries in Cumbria; 1 NA
 
 ## Pull out NAs
 surgery_board_qa <- surgery_board_qa |> 
