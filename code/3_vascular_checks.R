@@ -46,11 +46,11 @@ gc()
 
 ## Values
 year <- 2024
-month <- "06"
+month <- "09"
 # Extract date should be date extract created, which should be 1st of quarter
-date_extract <- "2024-06-07"
+date_extract <- "2024-09-01"
 # Cutoff should be the date the extract expected (1st of March, June, Sept, Dec)
-date_cutoff <- "2024-06-01" 
+date_cutoff <- "2024-09-01" 
 today <- paste0("Workbook created ", Sys.Date())
 
 
@@ -71,9 +71,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2024-05-29"
+# "2012-08-13" "2024-08-22"
 range(quarter$date_referral_true)
-# "2012-08-15" "2024-05-30"
+# "2012-08-15" "2024-08-27"
 
 
 #### 3. Validate data ####
@@ -125,13 +125,13 @@ table(no_OPdate$result_outcome, useNA = "ifany")
 # 18: Ongoing assessment by vascular
 # 20: Other final outcome
 table(no_OPdate$result_outcome, no_OPdate$fy_quarter)
-#        2021/22_3 2022/23_2 2022/23_4 2023/24_3 2023/24_4
-# 03         1         0         0         0         0
-# 06         0         0         0         1         1
-# 08         0         0         0         1         0
-# 10         0         1         0         0         0
-# 18         0         0         0         0         1
-# 20         0         0         1         0         0
+#         2021/22_3 2022/23_2 2022/23_4 2023/24_3 2023/24_4 2024/25_1 2024/25_2
+# 03         1         0         0         0         0         0         0
+# 06         0         0         0         1         1         0         1
+# 08         0         0         0         1         0         0         0
+# 10         0         1         0         0         0         0         0
+# 18         0         0         0         0         1         2         0
+# 20         0         0         1         0         0         0         0
 rm(no_OPdate, quarter_date)
 
 
@@ -180,8 +180,8 @@ outcome_no_OP <- quarter[quarter$result_outcome %in% c("01","02","03","04","05")
                               !is.na(quarter$surg_method) |
                               !is.na(quarter$date_surgery)),]
 table(outcome_no_OP$fy_quarter, useNA = "ifany")
-# 2016/17_2 2020/21_2 2021/22_4 2022/23_1 ## Expecting 3 based on validation
-# 1         1         1         1         ## 2016/17 -- referred in error
+# 2016/17_2 2020/21_2 2021/22_4 2022/23_1 2023/24_4  ## Expecting 3 based on validation
+#   1         1         1         1         1        ## 2016/17 and 2023/24-- referred in error
 
 ## Check outcome_no_final: these will likely be ongoing cases with most 
 # recent financial year.
@@ -196,13 +196,13 @@ table(outcome_no_final$result_outcome, useNA = "ifany")
 # 18: Ongoing assessment by vascular
 # 19: Final outcome pending
 table(outcome_no_final$result_outcome, outcome_no_final$fy_quarter)
-#        2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2023/24_1 2023/24_2 2023/24_3 2023/24_4 2024/25_1
-# 09         0         0         0         0         0         0         0         1         0         0         0
-# 10         1         2         0         0         2         1         1         1         2         1         0
-# 14         0         0         0         0         0         0         0         0         1         0         0
-# 17         1         0         0         2         1         0         0         0         2         8         0
-# 18         2         0         1         1         0         0         3         4         5         8         2
-# 19         0         0         0         0         0         0         0         0         0         1         0
+#       2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2023/24_1 2023/24_2 2023/24_3 2023/24_4 2024/25_1 2024/25_2
+# 09         0         0         0         0         0         0         0         1         0         1         0         1
+# 10         1         2         0         0         2         1         1         1         2         1         0         0
+# 14         0         0         0         0         0         0         0         0         0         0         1         0
+# 17         1         0         0         1         1         0         0         2         1         3         4         0
+# 18         2         0         1         1         0         0         2         0         1         4         6         4
+# 19         0         0         0         0         0         0         0         0         0         1         0         1
 rm(no_outcome, outcome_no_OP, outcome_no_final, quarter_outcome)
 
 
