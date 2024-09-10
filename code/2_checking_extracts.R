@@ -41,14 +41,14 @@ gc()
 
 ## Values
 year <- 2024
-month <- "06"
-previous <- 202403
+month <- "09"
+previous <- 202406
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2024/25_2"
+fyq_current <- "2024/25_3"
 
 
 ## Pathways
@@ -72,7 +72,7 @@ length(unique(quarter$upi))
 # 202309: 402,297 of 579,181 records
 # 202403: 421,311 of 609,003 records
 # 202406: 430,862 of 623,564 records
-
+# 202409: 440,047 of 638,150 records
 
 #### 3. Validate data ####
 ## Rules are written such that a "pass" is an outlier to be investigated.
@@ -115,15 +115,15 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 1 2024/25_2         680
-# 2 2024/25_3           1
+# 1 2024/25_2       13919
+# 2 2024/25_3         660
 # 3 2025/26_2           1
 # 4 2025/26_3          49
 # 5 2056/57_2           1
 # 6 unrecorded          0
 #
 # Note that last four quarters have not happened yet (for this data set):
-# AMc: no real idea of why these exist - 2025/26_3 are all Highland
+# AMc: 2025/26_3 have been checked with Highland - all test clinics, so safe to ignore I think
 
 ## Remove screen_result == NA
 # to look at trend from previous six quarters
@@ -136,12 +136,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2022/23_4       10362
-# 2 2023/24_1        9888
-# 3 2023/24_2       10737
-# 4 2023/24_3        9043
-# 5 2023/24_4        9444
-# 6 2024/25_1        6441
+# 1 2023/24_1        9888
+# 2 2023/24_2       10737
+# 3 2023/24_3        9043
+# 4 2023/24_4        9444
+# 5 2024/25_1        9183
+# 6 2024/25_2        6156
 
 rm(annual, temp)
 ####
@@ -173,7 +173,7 @@ table(droplevels(hb_norf$hb_screen))
 #    4                       7                       1                 1 
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
-# AMc note: new case in Lothian 2024/25_1 - needs contacting
+# AMc note: new case in Lothian 2024/25_1 - has been contacted and reviewed
 
 rm(hb_norf) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
 

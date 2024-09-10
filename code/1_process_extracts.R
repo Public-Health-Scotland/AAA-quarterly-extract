@@ -34,8 +34,8 @@ gc()
 
 ## Values
 year <- 2024
-month <- "06"
-date_download <- "20240607"
+month <- "09"
+date_download <- "20240901"
 
 
 ## Pathways
@@ -46,7 +46,7 @@ gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files
                   "/gpprac.csv") # Changed from .sav 2Jun23
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
-                    "/postcode_2024_1_simd2020v2.rds")
+                    "/postcode_2024_2_simd2020v2.rds")
 
 ## Functions
 
