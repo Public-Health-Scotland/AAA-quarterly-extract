@@ -7,7 +7,7 @@
 # Imports and formats BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
 # Outputs are checked in further scripts;
-# March and September outputs used for MEG KPI reports
+# March and September outputs used for QPMG KPI reports
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
@@ -34,8 +34,8 @@ gc()
 
 ## Values
 year <- 2024
-month <- "09"
-date_download <- "20240901"
+month <- "12"
+date_download <- "20241201"
 
 
 ## Pathways
@@ -43,7 +43,7 @@ wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
                  "/", year, month)
 
 gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
-                  "/gpprac.csv") # Changed from .sav 2Jun23
+                  "/gpprac.csv") 
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
                     "/postcode_2024_2_simd2020v2.rds")
