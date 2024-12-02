@@ -6,7 +6,7 @@
 # 
 # Checks processed BOXI extracts and checks vascular data
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
-# March and September outputs used for MEG reports
+# March and September outputs used for QPMG reports
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
@@ -46,11 +46,11 @@ gc()
 
 ## Values
 year <- 2024
-month <- "09"
+month <- "12"
 # Extract date should be date extract created, which should be 1st of quarter
-date_extract <- "2024-09-01"
+date_extract <- "2024-12-01"
 # Cutoff should be the date the extract expected (1st of March, June, Sept, Dec)
-date_cutoff <- "2024-09-01" 
+date_cutoff <- "2024-12-01" 
 today <- paste0("Workbook created ", Sys.Date())
 
 
@@ -71,9 +71,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2024-08-22"
+# "2012-08-13" "2024-11-29"
 range(quarter$date_referral_true)
-# "2012-08-15" "2024-08-27"
+# "2012-08-15" "2024-11-30"
 
 
 #### 3. Validate data ####
@@ -125,13 +125,7 @@ table(no_OPdate$result_outcome, useNA = "ifany")
 # 18: Ongoing assessment by vascular
 # 20: Other final outcome
 table(no_OPdate$result_outcome, no_OPdate$fy_quarter)
-#         2021/22_3 2022/23_2 2022/23_4 2023/24_3 2023/24_4 2024/25_1 2024/25_2
-# 03         1         0         0         0         0         0         0
-# 06         0         0         0         1         1         0         1
-# 08         0         0         0         1         0         0         0
-# 10         0         1         0         0         0         0         0
-# 18         0         0         0         0         1         2         0
-# 20         0         0         1         0         0         0         0
+
 rm(no_OPdate, quarter_date)
 
 
@@ -180,8 +174,8 @@ outcome_no_OP <- quarter[quarter$result_outcome %in% c("01","02","03","04","05")
                               !is.na(quarter$surg_method) |
                               !is.na(quarter$date_surgery)),]
 table(outcome_no_OP$fy_quarter, useNA = "ifany")
-# 2016/17_2 2020/21_2 2021/22_4 2022/23_1 2023/24_4  ## Expecting 3 based on validation
-#   1         1         1         1         1        ## 2016/17 and 2023/24-- referred in error
+# Expecting 3 based on validation
+# 2016/17 and 2023/24-- referred in error
 
 ## Check outcome_no_final: these will likely be ongoing cases with most 
 # recent financial year.
@@ -196,18 +190,12 @@ table(outcome_no_final$result_outcome, useNA = "ifany")
 # 18: Ongoing assessment by vascular
 # 19: Final outcome pending
 table(outcome_no_final$result_outcome, outcome_no_final$fy_quarter)
-#       2021/22_2 2021/22_3 2021/22_4 2022/23_1 2022/23_2 2022/23_3 2023/24_1 2023/24_2 2023/24_3 2023/24_4 2024/25_1 2024/25_2
-# 09         0         0         0         0         0         0         0         1         0         1         0         1
-# 10         1         2         0         0         2         1         1         1         2         1         0         0
-# 14         0         0         0         0         0         0         0         0         0         0         1         0
-# 17         1         0         0         1         1         0         0         2         1         3         4         0
-# 18         2         0         1         1         0         0         2         0         1         4         6         4
-# 19         0         0         0         0         0         0         0         0         0         1         0         1
+
 rm(no_outcome, outcome_no_OP, outcome_no_final, quarter_outcome)
 
 
 ### 4. Update variables ####
-# Update the coded variables to descriptive
+# Update the coded variables to descriptions
 quarter %<>% 
   mutate(screen_type = case_when(screen_type=="01" ~ "Initial",
                                  screen_type=="02" ~ "Surveillance",
@@ -405,7 +393,7 @@ mort_year <- mort %>%
 
 
 #### 6. Write to Excel ####
-## Will need to have conversation with Garrick et al. about how this is sent
+## Will need to have conversation with program leads about how this is sent
 ## out and how often (annually v with each quarter??).
 ## Then, will be able to decide final format of printing out to Excel:
 ## Currently printing out into a single workbook to send to leads, but better

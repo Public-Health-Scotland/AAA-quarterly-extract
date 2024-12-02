@@ -6,7 +6,7 @@
 # 
 # Checks processed BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
-# March and September outputs used for MEG reports
+# March and September outputs used for QPMG reports
 # 
 # Written/run on R Studio Server
 # R version 3.6.1
@@ -41,14 +41,14 @@ gc()
 
 ## Values
 year <- 2024
-month <- "09"
-previous <- 202406
+month <- "12"
+previous <- 202409
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2024/25_3"
+fyq_current <- "2024/25_4"
 
 
 ## Pathways
@@ -66,13 +66,11 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")
   glimpse()
   
 length(unique(quarter$upi))
-# 202212: 375,084 of 536,613 records
-# 202303: 384,113 of 550,306 records
-# 202306: 393,232 of 564,491 records
-# 202309: 402,297 of 579,181 records
 # 202403: 421,311 of 609,003 records
 # 202406: 430,862 of 623,564 records
 # 202409: 440,047 of 638,150 records
+# 202412: 449,520 of 652,939
+
 
 #### 3. Validate data ####
 ## Rules are written such that a "pass" is an outlier to be investigated.
@@ -115,8 +113,8 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 1 2024/25_2       13919
-# 2 2024/25_3         660
+# 1 2024/25_3       14063
+# 2 2024/25_4         561
 # 3 2025/26_2           1
 # 4 2025/26_3          49
 # 5 2056/57_2           1
@@ -136,12 +134,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2023/24_1        9888
-# 2 2023/24_2       10737
-# 3 2023/24_3        9043
-# 4 2023/24_4        9444
-# 5 2024/25_1        9183
-# 6 2024/25_2        6156
+# 1 2023/24_2       10737
+# 2 2023/24_3        9043
+# 3 2023/24_4        9444
+# 4 2024/25_1        9183
+# 5 2024/25_2        9111
+# 6 2024/25_3        6436
 
 rm(annual, temp)
 ####
@@ -169,11 +167,11 @@ hb_norf <- quarter %>%
   arrange(hb_screen, fy_quarter)
 
 table(droplevels(hb_norf$hb_screen))
-# Grampian        Greater Glasgow & Clyd          Highland          Lothian 
-#    4                       7                       1                 1 
+# Grampian        Greater Glasgow & Clyde          Highland          Lothian 
+
 table(droplevels(hb_norf$hb_screen), hb_norf$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
-# AMc note: new case in Lothian 2024/25_1 - has been contacted and reviewed
+# AMc note: Lothian 2024/25_1 - has been contacted and reviewed
 
 rm(hb_norf) ## ONLY DELETE IF NO NEED TO CONTACT HBs!
 
@@ -213,7 +211,7 @@ hb_no_fail_reason <- quarter %>%
 
 table(droplevels(hb_no_fail_reason$hb_screen))
 # Borders 
-# 8 
+
 table(droplevels(hb_no_fail_reason$hb_screen), hb_no_fail_reason$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
 
@@ -226,7 +224,7 @@ hb_no_outcome <- quarter %>%
 
 table(droplevels(hb_no_outcome$hb_screen))
 # Borders 
-# 8 
+
 table(droplevels(hb_no_outcome$hb_screen), hb_no_outcome$fy_quarter)
 # Follow up with HBs if any occur in current fy_quarter
 
@@ -392,7 +390,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2024/25_2", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2024/25_4", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -403,7 +401,7 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 50) %>% 
+          .before = 52) %>% 
   # only need to use below in case of data entry error!
   # add_row(hbres="Scotland", fy_quarter="2025/26_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
