@@ -40,15 +40,15 @@ gc()
 
 
 ## Values
-year <- 2024
-month <- "12"
-previous <- 202409
+year <- 2025
+month <- "03"
+previous <- 202412
 # Financial year and quarter of current extract
 #March = q1
 #June = q2
 #Sept = q3
 #Dec = q4
-fyq_current <- "2024/25_4"
+fyq_current <- "2025/26_1"
 
 
 ## Pathways
@@ -69,8 +69,8 @@ length(unique(quarter$upi))
 # 202403: 421,311 of 609,003 records
 # 202406: 430,862 of 623,564 records
 # 202409: 440,047 of 638,150 records
-# 202412: 449,520 of 652,939
-
+# 202412: 449,520 of 652,939 records
+# 202412: 459,454 of 667,297 records
 
 #### 3. Validate data ####
 ## Rules are written such that a "pass" is an outlier to be investigated.
@@ -113,8 +113,8 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 1 2024/25_3       14063
-# 2 2024/25_4         561
+# 1 2024/25_4       12236
+# 2 2025/26_1         213
 # 3 2025/26_2           1
 # 4 2025/26_3          49
 # 5 2056/57_2           1
@@ -134,12 +134,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2023/24_2       10737
-# 2 2023/24_3        9043
-# 3 2023/24_4        9444
-# 4 2024/25_1        9183
-# 5 2024/25_2        9111
-# 6 2024/25_3        6436
+# 1 2023/24_3        9043
+# 2 2023/24_4        9444
+# 3 2024/25_1        9183
+# 4 2024/25_2        9111
+# 5 2024/25_3        8797
+# 6 2024/25_4        5424
 
 rm(annual, temp)
 ####
@@ -390,7 +390,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2024/25_4", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2025/26_1", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -401,7 +401,7 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 52) %>% 
+          .before = 53) %>% 
   # only need to use below in case of data entry error!
   # add_row(hbres="Scotland", fy_quarter="2025/26_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,

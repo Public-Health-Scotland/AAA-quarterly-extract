@@ -32,7 +32,7 @@ gc()
 
 
 ## Values
-year <- 2024
+year <- 2025
 month <- "06"
 
 
@@ -231,7 +231,7 @@ hb_names <- audit_qa |>
 
 for (hb_name in hb_names) {
   
-  write_QA_report(audit_qa, hb_name, "202306")
+  write_QA_report(audit_qa, hb_name, "202406")
   
 }
 
@@ -242,7 +242,7 @@ hb_names <- surgery_board_qa |>
 
 for (hb_name in hb_names) {
   
-  write_HBsurgery_report(surgery_board_qa, hb_name, "202306")
+  write_HBsurgery_report(surgery_board_qa, hb_name, "202406")
   
 }
 
