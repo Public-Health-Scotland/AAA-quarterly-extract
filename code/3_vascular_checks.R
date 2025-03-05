@@ -23,9 +23,6 @@
 ## to send to the HBs to review errors/questions? Or maybe that is for the 
 ## pre-September audit??
 
-
-## Notes from SPSS: 
-## August 2022: going forward these checks need updated to include the board of surgery. field
 ## Boards added retrospective data for board of surgery during summer 2022.
 
 
@@ -265,7 +262,7 @@ quarter %<>%
 
 #### 5. Create data subsets ####
 
-### Vascular appointment not needed ---
+### Vascular appointment not needed ----
 ## Records list
 appt_notreq <- quarter %>%
   filter(largest_measure < 5.5 |
@@ -301,7 +298,7 @@ appt_notreq_year <- appt_notreq %>%
   replace(is.na(.), 0)
 
 
-### Non-final outcomes ---
+### Non-final outcomes ----
 ## Records list
 nonfinal <- quarter %>%
   filter(result_outcome %in% c("09","10","14","17","18","19")) %>% 
@@ -330,7 +327,7 @@ nonfinal_year <- nonfinal %>%
   replace(is.na(.), 0)
 
 
-### Other final outcomes ---
+### Other final outcomes ----
 ## Records list
 otherfinal <- quarter %>%
   filter(result_outcome == "20") %>% 
@@ -361,7 +358,37 @@ otherfinal_year <- otherfinal %>%
   replace(is.na(.), 0)
 
 
-### Outcomes for patients who died ---
+### Vascular data missing for patients referred ----
+## Records list
+referred <- quarter %>%
+  filter(is.na(date_seen_outpatient),
+         result_outcome != "02" | is.na(result_outcome)) %>% 
+  mutate(result_outcome = result_outcome_descriptor) |> 
+  select(financial_year, fy_quarter, upi, hbres,
+         date_screen, screen_type, largest_measure,
+         screen_result, date_referral_true, date_seen_outpatient,
+         result_outcome, date_surgery, hb_surgery, surg_method) %>% 
+  arrange(hbres, fy_quarter)
+
+## HBs
+referred_hb <- referred %>% 
+  group_by(hbres) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = hbres, values_from = n)
+
+## HBs by year
+referred_year <- referred %>% 
+  arrange(financial_year) %>% 
+  group_by(hbres, financial_year) %>% 
+  count(hbres) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = financial_year, values_from = n, 
+              names_sort =TRUE) %>% 
+  replace(is.na(.), 0)
+
+
+### Outcomes for patients who died ----
 ## Records list
 mort <- quarter %>%
   filter(result_outcome %in% c("04","05","07","12","16")) %>% 
@@ -412,6 +439,11 @@ records_nonfinal <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residenc
                       "Screening Result", "Follow-up Recommendation", "Date of Referral",
                       "Actual Date of Referral", "Date Seen in Outpatient", 
                       "Result Outcome")
+records_referred <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
+                      "Date Screened", "Screening Type", "Largest Measurement",
+                      "Screening Result", "Actual Date of Referral",  
+                      "Date Seen in Outpatient", "Result Outcome", "Date of Surgery",
+                      "HB of surgery", "Surgery Method")
 records_mort <- c("Financial Year", "FY and Quarter", "UPI", "HB of Residence",
                   "Date Screened", "Screening Type", "Largest Measurement",
                   "Screening Result", "Follow-up Recommendation", "Date of Referral",
@@ -433,7 +465,7 @@ options("openxlsx.borderStyle" = "thin",
 modifyBaseFont(wb, fontSize = 11, fontName = "Arial")
 
 
-### Vascular appointment not needed ---
+### Vascular appointment not needed ----
 names(appt_notreq) <- records_appt
 addWorksheet(wb, sheetName = "Appointment not needed", gridLines = FALSE)
 writeData(wb, sheet = "Appointment not needed", appt_notreq_hb, startRow = 5)
@@ -518,6 +550,34 @@ addStyle(wb, "Other Final Outcomes", table_style, rows = 9:(9+nrow(otherfinal_ye
 
 setColWidths(wb, "Other Final Outcomes", cols = 1:ncol(otherfinal), 
              widths = "auto")
+
+
+### Missing vascular data ----
+names(referred) <- records_referred
+addWorksheet(wb, sheetName = "Missing vascular data", gridLines = FALSE)
+writeData(wb, sheet = "Missing vascular data", referred_hb, startRow = 5)
+writeData(wb, sheet = "Missing vascular data", referred_year, startRow = 9)
+writeDataTable(wb, sheet = "Missing vascular data", referred, startRow = 25)
+
+# titles
+title_referred <- "Missing vascular data by health board and financial year"
+writeData(wb, "Missing vascular data", title_referred, startRow = 1, startCol = 1)
+writeData(wb, "Missing vascular data", title_date, startRow = 2, startCol = 1)
+writeData(wb, "Missing vascular data", today, startRow = 3, startCol = 1)
+addStyle(wb, "Missing vascular data", title_style, rows = 1:2, cols = 1)
+
+# table headers
+addStyle(wb, "Missing vascular data", title_style, rows = 5, cols = 1:ncol(referred_hb))
+addStyle(wb, "Missing vascular data", title_style, rows = 9, cols = 1:ncol(referred_year))
+addStyle(wb, "Missing vascular data", title_style, rows = 25, cols = 1:ncol(referred))
+
+# tables
+addStyle(wb, "Missing vascular data", table_style, rows = 5:6, 
+         cols = 1:ncol(referred_hb), gridExpand = TRUE, stack = TRUE)
+addStyle(wb, "Missing vascular data", table_style, rows = 9:(9+nrow(referred_year)), 
+         cols = 1:ncol(referred_year), gridExpand = TRUE, stack = TRUE)
+
+setColWidths(wb, "Missing vascular data", cols = 1:ncol(referred), widths = "auto")
 
 
 ### Deaths ----
