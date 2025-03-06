@@ -70,7 +70,7 @@ length(unique(quarter$upi))
 # 202406: 430,862 of 623,564 records
 # 202409: 440,047 of 638,150 records
 # 202412: 449,520 of 652,939 records
-# 202412: 459,454 of 667,297 records
+# 202503: 459,454 of 667,297 records
 
 #### 3. Validate data ####
 ## Rules are written such that a "pass" is an outlier to be investigated.
