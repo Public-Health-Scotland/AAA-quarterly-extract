@@ -2,7 +2,6 @@
 # 1_process_extracts.R
 # Karen Hotopp
 # 14/10/2022
-# Script 1 of 3
 # 
 # Imports and formats BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec

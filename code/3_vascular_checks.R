@@ -2,7 +2,6 @@
 # 3_vascular_checks.R
 # Karen Hotopp
 # 24/10/2022
-# Script 3 of 3
 # 
 # Checks processed BOXI extracts and checks vascular data
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec

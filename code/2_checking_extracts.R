@@ -2,7 +2,6 @@
 # 2_checking_extracts.R
 # Karen Hotopp
 # 19/10/2022
-# Script 2 of 3
 # 
 # Checks processed BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
