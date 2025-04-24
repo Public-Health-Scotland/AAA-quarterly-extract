@@ -31,21 +31,10 @@ rm(list = ls())
 gc()
 
 
-## Values
-year <- 2025
-month <- "03"
-date_download <- "20250301"
+source("code/0_housekeeping.R")
 
+rm(date_cutoff, date_extract, fyq_current, previous, previous_path)
 
-## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
-                 "/", year, month)
-
-gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files",
-                  "/gpprac.csv") 
-
-simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
-                    "/postcode_2024_2_simd2020v2.rds")
 
 ## Functions
 
@@ -403,7 +392,7 @@ quarter %<>%
   glimpse()
 
 saveRDS(quarter, paste0(wd_path, 
-                        "/output/aaa_extract_", year, month, ".rds"))
+                        "/output/aaa_extract_", yymm, ".rds"))
 
 
 #### 3: Exclusions extract ####
@@ -443,5 +432,5 @@ exclude %<>%
 
 ## Write out ---
 saveRDS(exclude, paste0(wd_path, 
-                        "/output/aaa_exclusions_", year, month, ".rds"))
+                        "/output/aaa_exclusions_", yymm, ".rds"))
 

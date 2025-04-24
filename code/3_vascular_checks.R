@@ -39,23 +39,16 @@ library(tidylog)
 rm(list = ls())
 gc()
 
+source("code/0_housekeeping.R")
 
-## Values
-year <- 2025
-month <- "03"
-# Extract date should be date extract created, which should be 1st of quarter
-date_extract <- "2025-03-01"
-# Cutoff should be the date the extract expected (1st of March, June, Sept, Dec)
-date_cutoff <- "2025-03-01" 
+rm(date_download, fyq_current, gp_path, previous, previous_path, simd_path)
+
 today <- paste0("Workbook created ", Sys.Date())
 
 
-## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts", "/", year, month)
-
 
 #### 2: Call in extract ####
-quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")) %>% 
+quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", yymm, ".rds")) %>% 
   # select cases with vascular referrals 
   filter(!is.na(date_referral_true),
          date_screen <= as.Date(date_cutoff)) %>%
@@ -456,7 +449,7 @@ table_style <- createStyle(valign = "Bottom", halign = "Left",
                            border = "TopBottomLeftRight")
 
 ## Titles
-title_date <- paste0(month.name[as.numeric(month)], " ", year)
+title_date <- paste0(month.name[as.numeric(substr(yymm, 5, 6))], " ", substr(yymm, 1, 4))
 ## Setup workbook
 wb <- createWorkbook()
 options("openxlsx.borderStyle" = "thin",
@@ -609,4 +602,4 @@ setColWidths(wb, "Deaths", cols = 1:ncol(mort), widths = "auto")
 
 ### Save ----
 saveWorkbook(wb, paste0(wd_path, "/output/Vascular_checks_", 
-                        year, month, ".xlsx"), overwrite = TRUE)
+                        yymm, ".xlsx"), overwrite = TRUE)

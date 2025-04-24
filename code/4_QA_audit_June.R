@@ -30,14 +30,9 @@ library(forcats)
 rm(list=ls())
 gc()
 
+source("code/0_housekeeping.R")
 
-## Values
-year <- 2025
-month <- "06"
-
-
-## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts/", year, month)
+rm(date_cutoff, date_download, date_extract, fyq_current, gp_path, previous, previous_path, simd_path)
 
 
 ## Function
@@ -154,7 +149,7 @@ write_HBsurgery_report <- function(df1, hb_name, YYMM) {
 
 #### 2: QA Audit ----
 quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_",
-                           year, month, ".rds")) |>
+                           yymm, ".rds")) |>
   filter(audit_flag == "01")
 
 table(quarter$audit_result, useNA = "ifany")
@@ -231,7 +226,7 @@ hb_names <- audit_qa |>
 
 for (hb_name in hb_names) {
   
-  write_QA_report(audit_qa, hb_name, "202406")
+  write_QA_report(audit_qa, hb_name, yymm)
   
 }
 
@@ -242,7 +237,7 @@ hb_names <- surgery_board_qa |>
 
 for (hb_name in hb_names) {
   
-  write_HBsurgery_report(surgery_board_qa, hb_name, "202406")
+  write_HBsurgery_report(surgery_board_qa, hb_name, yymm)
   
 }
 
