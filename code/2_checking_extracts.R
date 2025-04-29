@@ -2,7 +2,6 @@
 # 2_checking_extracts.R
 # Karen Hotopp
 # 19/10/2022
-# Script 2 of 3
 # 
 # Checks processed BOXI extracts for AAA quarterly review
 # Quarterly extracts collected: 1 March, 1 June, 1 Sept, 1 Dec
@@ -39,26 +38,13 @@ rm(list = ls())
 gc()
 
 
-## Values
-year <- 2025
-month <- "03"
-previous <- 202412
-# Financial year and quarter of current extract
-#March = q1
-#June = q2
-#Sept = q3
-#Dec = q4
-fyq_current <- "2025/26_1"
+source("code/0_housekeeping.R")
 
+rm(date_cutoff, date_download, date_extract, gp_path, simd_path)
 
-## Pathways
-wd_path <-paste0("/PHI_conf/AAA/Topics/Screening/extracts",
-                 "/", year, month)
-previous_path <- paste0("/PHI_conf/AAA/Topics/Screening/extracts",
-                        "/", previous)
 
 #### 2: Call in extract ####
-quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", year, month, ".rds")) %>% 
+quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", yymm, ".rds")) %>% 
   # exclude cases with results obtained outside of Scotland 
   filter(!screen_result %in% c("05", "06")) %>% 
   # id variable for matching validator checks
@@ -357,9 +343,9 @@ summary <- rbind(summary_scot, summary_hb)
 
 #### Save files ----
 saveRDS(summary, paste0(wd_path, "/checks/aaa_checks_summary_", 
-                        year, month, ".rds"))
+                        yymm, ".rds"))
 saveRDS(summary_checks, paste0(wd_path, "/checks/aaa_checks_finyear_", 
-                               year, month, ".rds"))
+                               yymm, ".rds"))
 
 rm(summary_hb, summary_checks, quarter_checks)
 
@@ -434,5 +420,5 @@ summary(comparedf(hist_scot, summary_scot))
 # ## Write out to checks folder
 # # Is this needed??
 # # Run manual checks in .csv files if needed.
-# write_csv(hist_scot, paste0(wd_path, "/checks/Scotland_historic_", year, month, ".csv"))
-# write_csv(summary_scot, paste0(wd_path, "/checks/Scotland_summary_", year, month, ".csv"))
+# write_csv(hist_scot, paste0(wd_path, "/checks/Scotland_historic_", yymm, ".csv"))
+# write_csv(summary_scot, paste0(wd_path, "/checks/Scotland_summary_", yymm, ".csv"))
