@@ -57,6 +57,7 @@ length(unique(quarter$upi))
 # 202409: 440,047 of 638,150 records
 # 202412: 449,520 of 652,939 records
 # 202503: 459,454 of 667,297 records
+# 202506: 469,301 of 681,517 records
 
 #### 3. Validate data ####
 ## Rules are written such that a "pass" is an outlier to be investigated.
@@ -99,9 +100,9 @@ annual <- quarter %>%
   ungroup()
 
 tail(annual)
-# 1 2024/25_4       12236
-# 2 2025/26_1         213
-# 3 2025/26_2           1
+# 1 2024/25_4       12981
+# 2 2025/26_1       12545
+# 3 2025/26_2         155
 # 4 2025/26_3          49
 # 5 2056/57_2           1
 # 6 unrecorded          0
@@ -120,12 +121,12 @@ temp <- quarter %>%
 
 tail(temp)
 #  fy_quarter  screenings
-# 1 2023/24_3        9043
-# 2 2023/24_4        9444
-# 3 2024/25_1        9183
-# 4 2024/25_2        9111
-# 5 2024/25_3        8797
-# 6 2024/25_4        5424
+# 1 2023/24_4        9444
+# 2 2024/25_1        9183
+# 3 2024/25_2        9111
+# 4 2024/25_3        8797
+# 5 2024/25_4        8119
+# 6 2025/26_1        5492
 
 rm(annual, temp)
 ####
@@ -369,7 +370,7 @@ hist_scot <- historic_checks[historic_checks$hbres == "Scotland",]
 
 # should be one fy_quarter extra in summary_scot
 table(hist_scot$fy_quarter)
-table(summary_scot$fy_quarter) 
+table(summary_scot$fy_quarter)
 # add in blank rows for any additional fy_quarters to make up difference
 # (number of observations should be equal before able to compare)
 # will need to add one row each quarter; may need to add multiple if a data
@@ -406,8 +407,7 @@ hist_scot %<>%
 
 
 # should match
-table(hist_scot$fy_quarter)
-table(summary_scot$fy_quarter) 
+table(hist_scot$fy_quarter) ==table(summary_scot$fy_quarter) 
 
 
 ## Compare historic v current

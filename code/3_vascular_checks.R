@@ -60,9 +60,9 @@ quarter <- read_rds(paste0(wd_path, "/output/aaa_extract_", yymm, ".rds")) %>%
   glimpse()
 
 range(quarter$date_screen)
-# "2012-08-13" "2025-02-14"
+# "2012-08-13" "2025-05-29"
 range(quarter$date_referral_true)
-# "2012-08-15" "2025-02-15"
+# "2012-08-15" "2025-05-30"
 
 
 #### 3. Validate data ####
