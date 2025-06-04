@@ -14,13 +14,13 @@ library(stringr)
 # Values to change every run ----------------------------------------------
 
 # YYYY and MM of quarterly run (e.g. 12 for Dec, 03 for March)
-yymm <- "202503"
+yymm <- "202506"
 
 # date data was downloaded from Atos - should always be 1st of quarterly month
-date_download <- "20250301"
+date_download <- "20250601"
 
 # previous yymm value (3 months prior to current yymm)
-previous <- "202412"
+previous <- "202503"
 
 
 # Values to change when lookups change ------------------------------------
