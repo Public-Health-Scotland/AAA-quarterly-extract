@@ -364,8 +364,9 @@ names(summary)
 table(historic_checks$fy_quarter)
 table(summary$fy_quarter) 
 
-
-hist_scot <- historic_checks[historic_checks$hbres == "Scotland",]
+hist_scot <- historic_checks[historic_checks$hbres == "Scotland",] 
+  
+  
 
 
 # should be one fy_quarter extra in summary_scot
@@ -377,7 +378,7 @@ table(summary_scot$fy_quarter)
 # entry error has been made and a further fy_quarter has been added to dataset
 
 hist_scot %<>% 
-  add_row(hbres="Scotland", fy_quarter="2025/26_1", screening_n=0, patient_n=0,
+  add_row(hbres="Scotland", fy_quarter="2026/27_3", screening_n=0, patient_n=0,
           attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,
           date_screen_before_offer_n=0, date_result_before_screen_n=0,
           date_verified_before_result_n=0, date_referral_before_verified_n=0,
@@ -388,7 +389,7 @@ hist_scot %<>%
           not_recorded_fail_detail_n=0,not_recorded_batch_outcome_n=0,
           # to calculate placement index, identify row index of the same fy_quarter
           # in summary_scot table and change number below to match
-          .before = 53) %>% 
+          .before = 60) %>% 
   # only need to use below in case of data entry error!
   # add_row(hbres="Scotland", fy_quarter="2025/26_3", screening_n=0, patient_n=0,
   #         attend_n=0, missing_postcode_n=0, missing_simd_n=0, missing_gp_n=0,

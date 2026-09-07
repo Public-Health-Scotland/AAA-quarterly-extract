@@ -14,13 +14,13 @@ library(stringr)
 # Values to change every run ----------------------------------------------
 
 # YYYY and MM of quarterly run (e.g. 12 for Dec, 03 for March)
-yymm <- "202506"
+yymm <- "202609"
 
 # date data was downloaded from Atos - should always be 1st of quarterly month
-date_download <- "20250601"
+date_download <- "20260901"
 
 # previous yymm value (3 months prior to current yymm)
-previous <- "202503"
+previous <- "202606"
 
 
 # Values to change when lookups change ------------------------------------
@@ -31,7 +31,7 @@ gp_path <- paste0("/conf/linkage/output/lookups/Unicode/National Reference Files
                   "/gpprac.csv") 
 
 simd_path <- paste0("/conf/linkage/output/lookups/Unicode/Deprivation",
-                    "/postcode_2024_2_simd2020v2.rds")
+                    "/postcode_2025_2_simd2020v2.rds")
 
 
 
